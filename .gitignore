@@ -1,0 +1,25 @@
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Node (jika pakai Firebase CLI lokal)
+node_modules/
+.npmrc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / secrets — JANGAN pernah commit file ini
+.env
+.env.local
+*.key
+service-account*.json
