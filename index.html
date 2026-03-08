@@ -439,8 +439,9 @@ td strong { color:var(--text); font-weight:600; }
 }
 .upload-zone:hover, .upload-zone.drag { border-color:var(--accent); background:var(--accent-dim); }
 .upload-icon { font-size:2.5rem; margin-bottom:.75rem; display:block; }
-.upload-zone p { color:var(--text2); font-size:.875rem; margin-bottom:.5rem; }
-.upload-zone small { color:var(--text3); font-size:.75rem; }
+.upload-zone p { color:var(--text); font-size:.875rem; margin-bottom:.5rem; }
+.upload-zone small { color:var(--text2); font-size:.75rem; }
+.upload-zone strong { color:var(--accent); }
 
 .soal-editor {
   background:var(--card);
@@ -1223,20 +1224,65 @@ td strong { color:var(--text); font-weight:600; }
 }
 
 /* ════════════════════════════════
+   EXAM FIXED BOTTOM NAV (MOBILE)
+════════════════════════════════ */
+.exam-nav-bar {
+  display: none; /* shown only on mobile via media query */
+}
+
+@media (max-width: 768px) {
+  .exam-nav-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border2);
+    padding: .5rem .75rem;
+    padding-bottom: max(.5rem, env(safe-area-inset-bottom, 0px));
+    gap: .4rem;
+    z-index: 200;
+    align-items: center;
+  }
+  .exam-nav-bar .btn-nav {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: .65rem .3rem;
+    font-size: .75rem;
+  }
+  .exam-nav-bar .btn-end {
+    flex: 1.3;
+    padding: .65rem .5rem;
+    font-size: .78rem;
+  }
+  /* Hide the original nav-row on mobile (shown in bottom bar) */
+  .nav-row { display: none !important; }
+  /* Adjust q-panel height for exam bottom bar */
+  .exam-body {
+    height: calc(100dvh - 57px - env(safe-area-inset-bottom, 0px)) !important;
+    grid-template-rows: 1fr auto;
+  }
+  .q-panel {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* Sidebar more compact */
+  .q-sidebar {
+    max-height: 160px !important;
+    padding: .65rem .75rem !important;
+    gap: .5rem !important;
+  }
+  .q-sidebar > div { min-width: 100px !important; }
+  .num-grid { grid-template-columns: repeat(10,1fr) !important; gap:.25rem !important; }
+  .num-btn { min-height: 30px !important; font-size: .6rem !important; }
+  .ans-summary { padding: .5rem !important; }
+  .ans-big { font-size: 1.2rem !important; }
+  /* ════════════════════════════════
    PRINT (export PDF)
 ════════════════════════════════ */
 @media print {
-  .bottom-nav, .exam-topbar { display: none !important; }
+  .bottom-nav, .exam-topbar, .exam-nav-bar { display: none !important; }
 }
 </style>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-<!-- Tambahkan modul yang diperlukan, misalnya Firestore -->
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
-<!-- Auth jika diperlukan -->
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
-</head>
-<body>
 </head>
 <body>
 
@@ -1261,6 +1307,9 @@ td strong { color:var(--text); font-weight:600; }
     <button class="bnav-item" id="bn-hasil" onclick="switchPage('hasil');setBnav('hasil')">
       <span class="bnav-icon">📋</span>Nilai
     </button>
+    <button class="bnav-item" id="bn-logout" onclick="logout()" style="color:var(--red)">
+      <span class="bnav-icon">🚪</span>Keluar
+    </button>
   </div>
 </div>
 
@@ -1284,6 +1333,34 @@ td strong { color:var(--text); font-weight:600; }
     <div class="modal-actions">
       <button class="btn btn-outline" style="flex:1" onclick="closeModal()">Batal</button>
       <button class="btn btn-danger" style="flex:1" id="modalConfirmBtn">Ya, Selesai</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BLOCKED MODAL (siswa login ganda) ══ -->
+<div class="modal-bg" id="blockedModal">
+  <div class="modal-box" style="text-align:center">
+    <div style="font-size:3rem;margin-bottom:.75rem">🔒</div>
+    <h3 style="color:var(--red);margin-bottom:.5rem">Akses Diblokir</h3>
+    <p id="blockedMsg" style="white-space:pre-line">Login diblokir.</p>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn btn-primary" style="width:auto;margin-top:0" onclick="document.getElementById('blockedModal').classList.remove('show')">Mengerti</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESET LOGIN MODAL (konfirmasi guru) ══ -->
+<div class="modal-bg" id="resetModal">
+  <div class="modal-box">
+    <div style="font-size:2rem;margin-bottom:.5rem">🔓</div>
+    <h3 id="resetModalTitle">Izinkan Login Ulang?</h3>
+    <p id="resetModalMsg">Siswa ini akan diizinkan untuk login kembali ke ujian.</p>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.75rem;margin-bottom:1rem;font-size:.8rem;color:var(--text2)">
+      ⚠️ Jika siswa sudah selesai dan nilainya tersimpan, nilai lama <strong>tidak akan dihapus</strong> kecuali kamu hapus manual di tab Nilai.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('resetModal').classList.remove('show')">Batal</button>
+      <button class="btn btn-green" style="flex:1" id="resetModalConfirmBtn">✓ Ya, Izinkan</button>
     </div>
   </div>
 </div>
@@ -1336,11 +1413,15 @@ td strong { color:var(--text); font-weight:600; }
         <p>Isi data & kode ujian</p>
       </div>
     </div>
-    <div class="field"><label>Nama Lengkap</label><input type="text" id="siswaName" placeholder="Nama Anda..."></div>
-    <div class="field"><label>No. Peserta / NIS</label><input type="text" id="siswaNIS" placeholder="2024-001"></div>
+    <div class="field"><label>Nama Lengkap</label><input type="text" id="siswaName" placeholder="Nama Anda..." autocomplete="off"></div>
+    <div class="field"><label>No. Peserta / NIS</label><input type="text" id="siswaNIS" placeholder="2024-001" autocomplete="off"></div>
+    <div class="field">
+      <label>Kelas</label>
+      <input type="text" id="siswaKelas" placeholder="Contoh: X-IPA-1" autocomplete="off" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+    </div>
     <div class="field">
       <label>Kode Ujian</label>
-      <input type="text" id="siswaCode" placeholder="Contoh: ABC123" style="text-transform:uppercase;letter-spacing:.15em;font-family:'Space Mono',monospace;font-size:1.1rem" oninput="this.value=this.value.toUpperCase()">
+      <input type="text" id="siswaCode" placeholder="Contoh: ABC123" style="text-transform:uppercase;letter-spacing:.15em;font-family:'Space Mono',monospace;font-size:1.1rem" oninput="this.value=this.value.toUpperCase()" autocomplete="off">
     </div>
     <button class="btn btn-primary" onclick="joinExam()">Mulai Ujian →</button>
   </div>
@@ -1522,14 +1603,18 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
             <select id="filterExam" class="btn btn-outline btn-sm" style="width:auto;padding:.45rem .75rem;font-weight:600" onchange="renderHasil()">
               <option value="">Semua Ujian</option>
             </select>
+            <select id="filterKelas" class="btn btn-outline btn-sm" style="width:auto;padding:.45rem .75rem;font-weight:600" onchange="renderHasil()">
+              <option value="">Semua Kelas</option>
+            </select>
             <button class="btn btn-green btn-sm" onclick="exportCSV()">📥 Export CSV</button>
             <button class="btn btn-outline btn-sm" onclick="exportPDF()">📄 Export PDF</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAllResults()">🗑 Hapus Semua</button>
           </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>No</th><th>Nama</th><th>NIS</th><th>Ujian</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Waktu</th><th>Pelanggaran</th></tr></thead>
-            <tbody id="hasilTable"><tr><td colspan="9" style="text-align:center;color:var(--text3);padding:2rem">Belum ada data hasil ujian.</td></tr></tbody>
+            <thead><tr><th>No</th><th>Nama</th><th>NIS</th><th>Kelas</th><th>Ujian</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Waktu</th><th>Tanggal</th><th>Pelanggaran</th><th>Hapus</th></tr></thead>
+            <tbody id="hasilTable"><tr><td colspan="12" style="text-align:center;color:var(--text3);padding:2rem">Belum ada data hasil ujian.</td></tr></tbody>
           </table>
         </div>
         <div id="hasilStats" style="display:none" class="session-info">
@@ -1577,7 +1662,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
 
     <div class="q-sidebar">
       <div>
-        <div class="sidebar-sec">Navigasi</div>
+        <div class="sidebar-sec">Navigasi Soal</div>
         <div class="num-grid" id="numGrid"></div>
       </div>
       <div>
@@ -1597,6 +1682,14 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       </div>
     </div>
   </div>
+</div>
+
+<!-- ═══ EXAM MOBILE BOTTOM NAV BAR ═══ -->
+<div class="exam-nav-bar" id="examNavBar" style="display:none">
+  <button class="btn-nav" onclick="prevQ()">← Prev</button>
+  <button class="btn-nav" onclick="nextQ()">Next →</button>
+  <button class="btn-nav" onclick="flagQ()">⚑ Tandai</button>
+  <button class="btn-end" onclick="confirmEnd()">✓ Selesai</button>
 </div>
 
 <!-- ════════════════════════════════
@@ -1694,6 +1787,51 @@ const FS = {
     const docId = `${result.examCode}_${result.nis}_${Date.now()}`;
     await fsdb.collection('results').doc(docId).set(result);
   },
+  async deleteResult(id) {
+    await fsdb.collection('results').doc(id).delete();
+  },
+  async deleteAllResults(examCode) {
+    const snap = examCode
+      ? await fsdb.collection('results').where('examCode','==',examCode).get()
+      : await fsdb.collection('results').get();
+    const batch = fsdb.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  },
+  // Participants — track live session entries
+  async saveParticipant(p) {
+    const docId = `${p.examCode}_${p.nis}`;
+    await fsdb.collection('participants').doc(docId).set(p);
+  },
+  async updateParticipant(examCode, nis, data) {
+    const docId = `${examCode}_${nis}`;
+    await fsdb.collection('participants').doc(docId).update(data);
+  },
+  async getParticipant(examCode, nis) {
+    const docId = `${examCode}_${nis}`;
+    const doc = await fsdb.collection('participants').doc(docId).get();
+    return doc.exists ? { id: doc.id, ...doc.data() } : null;
+  },
+  async getParticipants(examCode) {
+    const snap = await fsdb.collection('participants').where('examCode','==',examCode).get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+  async deleteParticipantsByExam(examCode) {
+    const snap = await fsdb.collection('participants').where('examCode','==',examCode).get();
+    const batch = fsdb.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  },
+  async resetParticipantLogin(examCode, nis) {
+    // Guru menyetujui login ulang: hapus record participant lama
+    // sehingga siswa bisa login kembali seperti baru
+    const docId = `${examCode}_${nis}`;
+    await fsdb.collection('participants').doc(docId).delete();
+  },
+  onParticipants(examCode, cb) {
+    return fsdb.collection('participants').where('examCode','==',examCode)
+      .onSnapshot(snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  },
   // Uploaded soal
   async getSoal() {
     const doc = await fsdb.collection('config').doc('uploadedSoal').get();
@@ -1718,6 +1856,7 @@ const FS = {
 // Simpan fungsi unsubscribe supaya bisa di-cleanup saat logout
 let _unsubExams = null;
 let _unsubResults = null;
+let _unsubParticipants = {}; // keyed by examCode
 
 // ══════════════════════════════════════
 // BUILT-IN QUESTION BANKS
@@ -1815,6 +1954,7 @@ let APP = {
   uploadedSoal: [],
   exams: [],
   results: [],
+  participants: {}, // keyed by examCode
 };
 
 // ══════════════════════════════════════
@@ -1841,6 +1981,35 @@ function toast(msg, type='info') {
 
 function closeModal() {
   document.getElementById('confirmModal').classList.remove('show');
+}
+
+function showBlockedModal(msg) {
+  document.getElementById('blockedMsg').textContent = msg;
+  document.getElementById('blockedModal').classList.add('show');
+}
+
+function showResetModal(examCode, nis, name) {
+  document.getElementById('resetModalTitle').textContent = `Izinkan Login Ulang?`;
+  document.getElementById('resetModalMsg').textContent = `Siswa "${name}" (NIS: ${nis}) akan diizinkan masuk kembali ke ujian.`;
+  const btn = document.getElementById('resetModalConfirmBtn');
+  // Replace button to clear old onclick
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+  newBtn.onclick = async () => {
+    newBtn.disabled = true;
+    newBtn.textContent = 'Memproses...';
+    try {
+      await FS.resetParticipantLogin(examCode, nis);
+      document.getElementById('resetModal').classList.remove('show');
+      toast(`Login ulang untuk ${name} telah diizinkan ✓`, 'success');
+    } catch(e) {
+      toast('Gagal reset: ' + e.message, 'error');
+    } finally {
+      newBtn.disabled = false;
+      newBtn.textContent = '✓ Ya, Izinkan';
+    }
+  };
+  document.getElementById('resetModal').classList.add('show');
 }
 
 // ══════════════════════════════════════
@@ -1905,11 +2074,14 @@ function logout() {
   // Stop realtime listeners
   if (_unsubExams)   { _unsubExams();   _unsubExams   = null; }
   if (_unsubResults) { _unsubResults(); _unsubResults = null; }
+  Object.values(_unsubParticipants).forEach(fn => fn && fn());
+  _unsubParticipants = {};
   auth.signOut().catch(() => {});
   APP.role = null;
   APP.user = null;
   APP.exams = [];
   APP.results = [];
+  APP.participants = {};
   document.getElementById('bottomNav').classList.remove('show');
   showScreen('login-screen');
   backToRole();
@@ -1957,6 +2129,8 @@ function startRealtimeListeners() {
     renderExamTable();
     document.getElementById('stTotalExam').textContent = exams.length;
     document.getElementById('stAktif').textContent = exams.filter(e => e.status === 'aktif').length;
+    // Subscribe participants for each active exam
+    subscribeAllParticipants(exams);
   });
   // Results — update nilai & statistik secara live
   _unsubResults = FS.onResults(results => {
@@ -1965,10 +2139,29 @@ function startRealtimeListeners() {
     document.getElementById('stTotalSiswa').textContent = totalSiswa;
     const avg = results.length ? Math.round(results.reduce((s,r) => s+r.score,0)/results.length) : '—';
     document.getElementById('stRataRata').textContent = avg;
-    // Refresh halaman hasil jika sedang aktif
     if (document.getElementById('page-hasil').classList.contains('active')) renderHasil();
-    // Refresh sesi jika sedang aktif
     if (document.getElementById('page-sesi').classList.contains('active')) renderSesiCards();
+  });
+}
+
+function subscribeAllParticipants(exams) {
+  // Unsubscribe old listeners
+  Object.values(_unsubParticipants).forEach(fn => fn && fn());
+  _unsubParticipants = {};
+  // Subscribe for each active exam
+  exams.filter(e => e.status === 'aktif').forEach(exam => {
+    _unsubParticipants[exam.code] = FS.onParticipants(exam.code, participants => {
+      APP.participants = APP.participants || {};
+      APP.participants[exam.code] = participants;
+      renderExamTable();
+      if (document.getElementById('page-sesi').classList.contains('active')) renderSesiCards();
+      // Update stTotalSiswa to include active participants
+      const allParts = Object.values(APP.participants || {}).flat();
+      const uniqueNis = new Set(allParts.map(p => p.nis));
+      const finishedNis = new Set(APP.results.map(r => r.nis));
+      uniqueNis.forEach(n => finishedNis.add(n));
+      document.getElementById('stTotalSiswa').textContent = finishedNis.size;
+    });
   });
 }
 
@@ -1997,7 +2190,10 @@ function renderExamTable() {
   const tbody = document.getElementById('examTable');
   if (!APP.exams.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:2rem">Belum ada ujian.</td></tr>'; return; }
   tbody.innerHTML = APP.exams.map(e => {
-    const peserta = APP.results.filter(r => r.examCode === e.code).length;
+    // Count from participants (who joined) + results (who finished, not in participants)
+    const participantsForExam = (APP.participants && APP.participants[e.code]) || [];
+    const finishedCount = APP.results.filter(r => r.examCode === e.code).length;
+    const peserta = participantsForExam.length > 0 ? participantsForExam.length : finishedCount;
     const statusBadge = e.status === 'aktif'
       ? `<span class="badge badge-green">● Aktif</span>`
       : `<span class="badge badge-gray">■ Selesai</span>`;
@@ -2247,9 +2443,6 @@ function downloadTemplate(type) {
   toast('Template didownload!', 'success');
 }
 
-// ══════════════════════════════════════
-// SESI AKTIF
-// ══════════════════════════════════════
 function refreshSesi() {
   renderSesiCards();
 }
@@ -2259,15 +2452,37 @@ function renderSesiCards() {
   const el = document.getElementById('sesiList');
   if (!aktif.length) { el.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3)">Belum ada sesi aktif.</div>'; return; }
   el.innerHTML = aktif.map(exam => {
-    const peserta = APP.results.filter(r => r.examCode === exam.code);
+    const participants = (APP.participants && APP.participants[exam.code]) || [];
+    const active = participants.filter(p => p.status === 'active');
+    const done = participants.filter(p => p.status === 'done');
+    const avgScore = done.length ? Math.round(done.reduce((s,p) => s+(p.score||0),0)/done.length) : null;
+
+    const renderParticipantCard = (p, accent, bg) => {
+      const scoreColor = (p.score||0)>=80?'var(--green)':(p.score||0)>=60?'var(--accent)':(p.score||0)>=40?'var(--yellow)':'var(--red)';
+      const scoreEl = p.status === 'done'
+        ? `<div style="color:${scoreColor};font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700">Nilai: ${p.score ?? '—'}</div>`
+        : `<div style="color:var(--yellow);font-size:.68rem">⏱ Sedang mengerjakan...</div>`;
+      return `<div style="background:${bg};border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.6rem .85rem;font-size:.78rem;min-width:160px;max-width:220px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:.2rem">${p.name}</div>
+        <div style="color:var(--text3);font-size:.65rem;margin-bottom:.25rem">${p.kelas || '—'} · NIS: ${p.nis}</div>
+        ${scoreEl}
+        <button
+          class="btn btn-outline btn-xs"
+          style="margin-top:.45rem;width:100%;border-color:rgba(251,146,60,.35);color:var(--orange);font-size:.65rem;min-height:28px"
+          onclick="resetParticipantLogin('${exam.code}','${p.nis}','${p.name.replace(/'/g,"\\'")}')">
+          🔓 Izinkan Login Ulang
+        </button>
+      </div>`;
+    };
+
     return `
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:1rem;overflow:hidden">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:1.25rem;overflow:hidden">
         <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
           <div>
             <div style="font-weight:700;margin-bottom:.2rem">${exam.title}</div>
             <div style="font-size:.75rem;color:var(--text2)">${exam.mapel} · ${exam.questions.length} soal · ${exam.dur} menit</div>
           </div>
-          <div style="display:flex;align-items:center;gap:.75rem">
+          <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
             <div class="exam-code-display" style="padding:.5rem 1rem;min-width:0">
               <span class="exam-code" style="font-size:1.25rem;letter-spacing:.15em;margin:.25rem 0">${exam.code}</span>
               <div class="exam-code-label" style="font-size:.6rem">KODE UJIAN</div>
@@ -2275,16 +2490,43 @@ function renderSesiCards() {
             <button class="btn btn-danger btn-sm" onclick="toggleExamStatus('${exam.code}')">Tutup Sesi</button>
           </div>
         </div>
-        <div style="padding:1rem 1.25rem">
-          <div style="font-size:.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">
-            Peserta (${peserta.length}) <span style="color:var(--green);font-size:.65rem">● LIVE</span>
+        <!-- Stats Row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--border)">
+          <div style="padding:.75rem 1rem;text-align:center;border-right:1px solid var(--border)">
+            <div style="font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--accent)">${participants.length}</div>
+            <div style="font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em">Total Login</div>
           </div>
-          ${peserta.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem">
-            ${peserta.map(r=>`<span class="badge badge-green">✓ ${r.name}</span>`).join('')}
-          </div>` : '<p style="color:var(--text3);font-size:.8rem">Belum ada peserta yang selesai.</p>'}
+          <div style="padding:.75rem 1rem;text-align:center;border-right:1px solid var(--border)">
+            <div style="font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--yellow)">${active.length}</div>
+            <div style="font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em">Sedang Ujian</div>
+          </div>
+          <div style="padding:.75rem 1rem;text-align:center">
+            <div style="font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--green)">${done.length}</div>
+            <div style="font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em">Selesai</div>
+          </div>
+        </div>
+        ${avgScore !== null ? `<div style="padding:.5rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border);font-size:.8rem;color:var(--text2)">
+          📊 Rata-rata nilai (selesai): <strong style="color:var(--accent);font-family:'Space Mono',monospace">${avgScore}</strong>
+        </div>` : ''}
+        <div style="padding:1rem 1.25rem">
+          ${active.length ? `
+          <div style="font-size:.72rem;color:var(--yellow);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem">⏱ Sedang Ujian (${active.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.1rem">
+            ${active.map(p => renderParticipantCard(p,'var(--orange-dim)','var(--orange-dim)')).join('')}
+          </div>` : ''}
+          ${done.length ? `
+          <div style="font-size:.72rem;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem">✓ Selesai (${done.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+            ${done.map(p => renderParticipantCard(p,'var(--green)','var(--green-dim)')).join('')}
+          </div>` : ''}
+          ${!participants.length ? '<p style="color:var(--text3);font-size:.8rem;text-align:center;padding:1rem">Belum ada peserta yang login.</p>' : ''}
         </div>
       </div>`;
   }).join('');
+}
+
+function resetParticipantLogin(examCode, nis, name) {
+  showResetModal(examCode, nis, name);
 }
 
 // ══════════════════════════════════════
@@ -2294,7 +2536,7 @@ function renderHasil() {
   const results = APP.results;
   const exams   = APP.exams;
 
-  // Populate filter
+  // Populate exam filter
   const filter = document.getElementById('filterExam');
   const cur = filter.value;
   filter.innerHTML = '<option value="">Semua Ujian</option>';
@@ -2305,15 +2547,30 @@ function renderHasil() {
   });
   filter.value = cur;
 
-  const filtered = cur ? results.filter(r => r.examCode === cur) : results;
+  // Populate kelas filter
+  const kelasFilter = document.getElementById('filterKelas');
+  const curKelas = kelasFilter.value;
+  const kelasList = [...new Set(results.map(r => r.kelas).filter(Boolean))].sort();
+  kelasFilter.innerHTML = '<option value="">Semua Kelas</option>';
+  kelasList.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k; opt.textContent = k;
+    kelasFilter.appendChild(opt);
+  });
+  kelasFilter.value = curKelas;
+
+  let filtered = cur ? results.filter(r => r.examCode === cur) : results;
+  if (curKelas) filtered = filtered.filter(r => r.kelas === curKelas);
+
   const tbody = document.getElementById('hasilTable');
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:2rem">Belum ada data.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:2rem">Belum ada data.</td></tr>';
     document.getElementById('hasilStats').style.display = 'none';
     return;
   }
 
+  // Group by exam for display
   tbody.innerHTML = filtered.map((r,i) => {
     const scoreColor = r.score>=80?'var(--green)':r.score>=60?'var(--accent)':r.score>=40?'var(--yellow)':'var(--red)';
     const vBadge = r.violations>0 ? `<span class="badge badge-red">⚠ ${r.violations}</span>` : `<span class="badge badge-green">✓</span>`;
@@ -2321,12 +2578,15 @@ function renderHasil() {
       <td>${i+1}</td>
       <td><strong>${r.name}</strong></td>
       <td class="mono" style="font-size:.78rem">${r.nis}</td>
+      <td><span class="badge badge-blue">${r.kelas || '—'}</span></td>
       <td>${r.examTitle || '—'}</td>
       <td><strong style="color:${scoreColor};font-family:'Space Mono',monospace">${r.score}</strong></td>
       <td style="color:var(--green)">${r.correct}</td>
       <td style="color:var(--red)">${r.wrong}</td>
       <td class="mono" style="font-size:.75rem">${r.duration}</td>
+      <td style="font-size:.72rem;color:var(--text3)">${r.date || '—'}</td>
       <td>${vBadge}</td>
+      <td><button class="btn btn-danger btn-xs" onclick="deleteResult('${r.id}')">🗑</button></td>
     </tr>`;
   }).join('');
 
@@ -2338,20 +2598,39 @@ function renderHasil() {
   document.getElementById('hasilStats').style.display = 'grid';
 }
 
+function deleteResult(id) {
+  if (!confirm('Hapus data nilai ini?')) return;
+  FS.deleteResult(id)
+    .then(() => toast('Data dihapus', 'info'))
+    .catch(e => toast('Gagal hapus: ' + e.message, 'error'));
+}
+
+function deleteAllResults() {
+  const filter = document.getElementById('filterExam').value;
+  const examName = filter ? (APP.exams.find(e=>e.code===filter)?.title || filter) : 'SEMUA UJIAN';
+  if (!confirm(`Hapus semua riwayat nilai untuk ${examName}? Aksi ini tidak bisa dibatalkan!`)) return;
+  FS.deleteAllResults(filter || null)
+    .then(() => toast('Semua riwayat dihapus', 'info'))
+    .catch(e => toast('Gagal hapus: ' + e.message, 'error'));
+}
+
 function exportCSV() {
   const filter = document.getElementById('filterExam').value;
-  const data = filter ? APP.results.filter(r=>r.examCode===filter) : APP.results;
+  const kelasFilter = document.getElementById('filterKelas').value;
+  let data = filter ? APP.results.filter(r=>r.examCode===filter) : APP.results;
+  if (kelasFilter) data = data.filter(r => r.kelas === kelasFilter);
   if (!data.length) { toast('Tidak ada data untuk diekspor', 'error'); return; }
 
-  const header = 'No,Nama,NIS,Ujian,Kode,Nilai,Benar,Salah,Kosong,Durasi,Pelanggaran,Tanggal';
+  const header = 'No,Nama,NIS,Kelas,Ujian,Kode,Nilai,Benar,Salah,Kosong,Durasi,Pelanggaran,Tanggal';
   const rows = data.map((r,i) =>
-    `${i+1},"${r.name}","${r.nis}","${r.examTitle||''}","${r.examCode}",${r.score},${r.correct},${r.wrong},${r.skip},"${r.duration}",${r.violations},"${r.date}"`
+    `${i+1},"${r.name}","${r.nis}","${r.kelas||''}","${r.examTitle||''}","${r.examCode}",${r.score},${r.correct},${r.wrong},${r.skip},"${r.duration}",${r.violations},"${r.date}"`
   );
   const csv = [header, ...rows].join('\n');
   const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const fname = `hasil_ujian_${new Date().toISOString().slice(0,10)}.csv`;
+  const kelasStr = kelasFilter ? `_${kelasFilter}` : '';
+  const fname = `hasil_ujian${kelasStr}_${new Date().toISOString().slice(0,10)}.csv`;
   a.href=url; a.download=fname; a.click();
   URL.revokeObjectURL(url);
   toast(`${data.length} data diekspor ke CSV ✓`, 'success');
@@ -2402,12 +2681,14 @@ function exportPDF() {
 // JOIN EXAM (SISWA)
 // ══════════════════════════════════════
 async function joinExam() {
-  const name = document.getElementById('siswaName').value.trim();
-  const nis  = document.getElementById('siswaNIS').value.trim();
-  const code = document.getElementById('siswaCode').value.trim().toUpperCase();
-  if (!name) { toast('Nama harus diisi!', 'error'); return; }
-  if (!nis)  { toast('NIS harus diisi!', 'error'); return; }
-  if (!code) { toast('Kode ujian harus diisi!', 'error'); return; }
+  const name  = document.getElementById('siswaName').value.trim();
+  const nis   = document.getElementById('siswaNIS').value.trim();
+  const kelas = document.getElementById('siswaKelas').value.trim();
+  const code  = document.getElementById('siswaCode').value.trim().toUpperCase();
+  if (!name)  { toast('Nama harus diisi!', 'error'); return; }
+  if (!nis)   { toast('NIS harus diisi!', 'error'); return; }
+  if (!kelas) { toast('Kelas harus diisi!', 'error'); return; }
+  if (!code)  { toast('Kode ujian harus diisi!', 'error'); return; }
 
   const joinBtn = document.querySelector('#siswaForm .btn-primary');
   joinBtn.disabled = true; joinBtn.textContent = 'Memeriksa...';
@@ -2419,14 +2700,37 @@ async function joinExam() {
     const exam = { id: examDoc.id, ...examDoc.data() };
     if (exam.status !== 'aktif') { toast('Ujian ini sudah ditutup!', 'error'); joinBtn.disabled=false; joinBtn.textContent='Mulai Ujian →'; return; }
 
-    // Cek duplikat
+    // Cek apakah sudah pernah login (satu kali login) via participants
+    const existParticipant = await FS.getParticipant(code, nis);
+    if (existParticipant) {
+      // Blokir login ulang — tampilkan pesan sesuai status
+      const msgMap = {
+        done:   '✋ Ujian kamu sudah selesai dan tidak bisa diulang.\nHubungi guru jika ingin masuk ulang.',
+        active: '✋ Kamu sudah login di sesi ini. Ujian hanya boleh dikerjakan sekali.\nHubungi guru jika perlu izin masuk ulang.',
+      };
+      const msg = msgMap[existParticipant.status] || '✋ Login kamu diblokir. Hubungi guru untuk izin masuk ulang.';
+      showBlockedModal(msg);
+      joinBtn.disabled=false; joinBtn.textContent='Mulai Ujian →';
+      return;
+    }
+
+    // Cek duplikat di results (untuk ujian yang sudah selesai sebelumnya)
     const dupSnap = await fsdb.collection('results')
       .where('examCode','==',code).where('nis','==',nis).limit(1).get();
     if (!dupSnap.empty) { toast('Kamu sudah mengikuti ujian ini!', 'error'); joinBtn.disabled=false; joinBtn.textContent='Mulai Ujian →'; return; }
 
+    // Simpan participant ke Firestore (login tracking)
+    await FS.saveParticipant({
+      name, nis, kelas, examCode: code,
+      joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      joinedAtStr: new Date().toLocaleString('id-ID'),
+      status: 'active',
+      score: null,
+    });
+
     joinBtn.disabled=false; joinBtn.textContent='Mulai Ujian →';
 
-    APP.examCfg  = { name, nis, code, exam };
+    APP.examCfg  = { name, nis, kelas, code, exam };
     APP.questions = exam.acak ? shuffle([...exam.questions]) : [...exam.questions];
     APP.answers  = new Array(APP.questions.length).fill(null);
     APP.flags    = new Array(APP.questions.length).fill(false);
@@ -2444,7 +2748,7 @@ async function joinExam() {
     countdownInterval = null;
 
     document.getElementById('eTitle').textContent = exam.title;
-    document.getElementById('eUser').textContent  = `${name} · ${nis}`;
+    document.getElementById('eUser').textContent  = `${name} · ${kelas} · ${nis}`;
     document.getElementById('bottomNav').classList.remove('show');
 
     buildNumGrid();
@@ -2452,6 +2756,10 @@ async function joinExam() {
     startTimer();
     initSecurity();
     showScreen('exam-screen');
+    // Show mobile exam nav bar (CSS will hide on desktop automatically)
+    if (window.innerWidth <= 768) {
+      document.getElementById('examNavBar').style.display = 'flex';
+    }
   } catch(e) {
     joinBtn.disabled=false; joinBtn.textContent='Mulai Ujian →';
     toast('Error: ' + e.message, 'error');
@@ -2585,6 +2893,7 @@ function submitExam() {
   const result = {
     name: APP.examCfg.name,
     nis: APP.examCfg.nis,
+    kelas: APP.examCfg.kelas || '',
     examCode: APP.examCfg.code,
     examTitle: APP.examCfg.exam.title,
     score, correct, wrong, skip, duration,
@@ -2594,8 +2903,19 @@ function submitExam() {
     questions: qs,
   };
 
+  // Mark participant as done in Firestore
+  FS.updateParticipant(APP.examCfg.code, APP.examCfg.nis, {
+    status: 'done',
+    score,
+    correct, wrong, skip,
+    finishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  }).catch(e => console.error('Gagal update participant:', e));
+
   FS.saveResult(result)
     .catch(e => console.error('Gagal simpan hasil:', e));
+
+  // Hide mobile exam nav bar
+  document.getElementById('examNavBar').style.display = 'none';
 
   showResult(result);
 }
@@ -2645,10 +2965,11 @@ function showResult(r) {
 }
 
 function goToDashboard() {
+  // Hide exam mobile nav bar
+  document.getElementById('examNavBar').style.display = 'none';
   if (APP.role === 'guru') {
     document.getElementById('bottomNav').classList.add('show');
     showScreen('guru-screen');
-    // data already live via listeners; just re-render tables
     renderExamTable();
     if (document.getElementById('page-hasil').classList.contains('active')) renderHasil();
   } else {
@@ -2661,28 +2982,13 @@ function goToDashboard() {
 function printResult() { window.print(); }
 
 function retakeExam() {
-  // Hentikan security dulu
-  stopSecurity();
-  if (APP.examCfg) {
-    // reset state
-    APP.answers = new Array(APP.questions.length).fill(null);
-    APP.flags = new Array(APP.questions.length).fill(false);
-    APP.current = 0;
-    APP.timeLeft = APP.examCfg.exam.dur * 60;
-    APP.violations = 0;
-    APP.startTime = Date.now();
-    APP.reviewMode = false;
-    isSubmitting = false;
-    lastViolationTime = 0;
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = null;
-    document.getElementById('timerVal').textContent = '—:——';
-    buildNumGrid();
-    renderQ();
-    startTimer();
-    initSecurity();
-    showScreen('exam-screen');
-  } else { goToDashboard(); }
+  // Satu kali login: siswa tidak bisa mengulang ujian
+  toast('Ujian hanya bisa dikerjakan satu kali. Terima kasih!', 'info');
+  setTimeout(() => {
+    document.getElementById('examNavBar').style.display = 'none';
+    showScreen('login-screen');
+    backToRole();
+  }, 1500);
 }
 
 // ══════════════════════════════════════
@@ -2896,17 +3202,12 @@ window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
 });
 
-// Jika guru pernah login (session masih aktif), langsung masuk dashboard
-auth.onAuthStateChanged(async user => {
-  if (user) {
-    APP.user = user;
-    APP.role = 'guru';
-    showScreen('guru-screen');
-    document.getElementById('bottomNav').classList.add('show');
-    await loadDashboardData();
-    startRealtimeListeners();
-  }
-});
+// ══════════════════════════════════════
+// INIT — Tampilkan halaman login (TIDAK auto-login)
+// ══════════════════════════════════════
+// Auto-login dinonaktifkan demi keamanan.
+// Guru harus login manual setiap sesi.
+showScreen('login-screen');
 </script>
 </body>
 </html>
