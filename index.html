@@ -1094,44 +1094,16 @@ td strong { color:var(--text); font-weight:600; }
   .timer-val { font-size: 1.1rem; min-width: 56px; }
   .timer-pill { padding: .45rem .85rem; }
 
-  .exam-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
-    height: calc(100vh - 57px - 52px - env(safe-area-inset-bottom, 0px));
-    overflow: hidden;
-  }
-  .q-panel {
-    padding: 1.25rem 1rem 1rem;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    flex: 1;
-  }
-  .q-sidebar {
-    border-top: 1px solid var(--border);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    max-height: 200px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: .875rem;
-    padding: 1rem;
-  }
-  .q-sidebar > div { flex: 1; min-width: 130px; }
+  /* ── Exam layout: handled by new .exam-nav-bar media block below ── */
 
   /* ── Question content ── */
   .q-text { font-size: 1rem; line-height: 1.6; margin-bottom: 1.25rem; }
   .opt-key { width: 34px; height: 34px; font-size: .78rem; }
   .opt-txt { font-size: .9rem; padding-top: 5px; }
 
-  /* ── Nav buttons ── */
-  .nav-row { flex-wrap: wrap; gap: .5rem; }
-  .btn-nav { flex: 1; justify-content: center; min-width: calc(50% - .25rem); font-size: .8rem; padding: .75rem .5rem; }
-  .btn-end { width: 100%; margin-left: 0; padding: .8rem; font-size: .875rem; }
+  /* ── Nav buttons: handled below in exam-nav-bar block ── */
 
-  /* ── Number grid: horizontal on mobile ── */
-  .num-grid { grid-template-columns: repeat(10, 1fr); gap: .3rem; }
+  /* ── Number grid: handled below in exam-nav-bar block ── */
 
   /* ── Guru dashboard ── */
   .stat-row { grid-template-columns: 1fr 1fr; gap: .75rem; }
@@ -1183,8 +1155,7 @@ td strong { color:var(--text); font-weight:600; }
   .upload-zone { padding: 1.5rem 1rem; }
   .upload-icon { font-size: 2rem; }
 
-  /* Warning counter: above bottom nav */
-  .warning-counter { top: auto; bottom: calc(56px + env(safe-area-inset-bottom, 0px) + .5rem); right: .75rem; }
+  /* Warning counter: handled in exam-nav-bar media block */
 }
 
 /* ════════════════════════════════
@@ -1212,71 +1183,158 @@ td strong { color:var(--text); font-weight:600; }
 }
 
 /* ════════════════════════════════
-   ANDROID CHROME ADDRESS BAR FIX
-════════════════════════════════ */
-@supports (height: 100dvh) {
-  @media (max-width:768px) {
-    html, body { height: 100dvh; }
-    .exam-body {
-      height: calc(100dvh - 57px - 52px - env(safe-area-inset-bottom, 0px));
-    }
-  }
-}
-
-/* ════════════════════════════════
    EXAM FIXED BOTTOM NAV (MOBILE)
 ════════════════════════════════ */
 .exam-nav-bar {
-  display: none; /* shown only on mobile via media query */
+  display: none;
 }
 
 @media (max-width: 768px) {
+
+  /* ── Exam: full-height flex column ── */
+  #exam-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    height: 100vh; /* fallback */
+    overflow: hidden;
+  }
+
+  .exam-topbar {
+    flex-shrink: 0;
+    padding: .6rem 1rem;
+    padding-top: max(.6rem, env(safe-area-inset-top));
+    z-index: 100;
+  }
+
+  /* exam-body fills remaining space between topbar and bottom nav */
+  .exam-body {
+    flex: 1;
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
+    height: unset !important;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Question panel scrolls, takes all available space */
+  .q-panel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 1rem 1.25rem;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Hide desktop nav row — replaced by fixed bottom bar */
+  .nav-row { display: none !important; }
+
+  /* ── Sidebar: compact strip below q-panel ── */
+  .q-sidebar {
+    flex-shrink: 0;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start;
+    gap: .75rem;
+    padding: .6rem .75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: none !important;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    /* reserve space above fixed bottom bar */
+    padding-bottom: calc(.6rem + 58px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Each section inside sidebar */
+  .q-sidebar > div {
+    flex-shrink: 0;
+    min-width: 0;
+  }
+
+  /* Number grid: horizontal rows, compact */
+  .num-grid {
+    display: grid !important;
+    grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
+    gap: .28rem !important;
+    min-width: 290px;
+  }
+  .num-btn {
+    min-height: 28px !important;
+    height: 28px;
+    font-size: .58rem !important;
+    border-radius: 5px;
+  }
+
+  .sidebar-sec {
+    font-size: .58rem;
+    margin-bottom: .35rem !important;
+    white-space: nowrap;
+  }
+
+  /* Legend: compact inline */
+  .legend {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: .25rem !important;
+  }
+  .leg-item { font-size: .68rem; gap: .35rem; }
+  .leg-dot { width: 9px; height: 9px; }
+
+  /* Answer summary */
+  .ans-summary {
+    padding: .45rem .65rem !important;
+    min-width: 80px;
+  }
+  .ans-big { font-size: 1.1rem !important; }
+  .ans-lbl { font-size: .58rem !important; }
+
+  /* ── Fixed bottom nav bar ── */
   .exam-nav-bar {
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
     background: var(--card);
-    border-top: 1px solid var(--border2);
-    padding: .5rem .75rem;
-    padding-bottom: max(.5rem, env(safe-area-inset-bottom, 0px));
-    gap: .4rem;
-    z-index: 200;
-    align-items: center;
+    border-top: 2px solid var(--border2);
+    padding: .45rem .6rem;
+    padding-bottom: max(.45rem, env(safe-area-inset-bottom, 0px));
+    gap: .35rem;
+    z-index: 300;
+    align-items: stretch;
+    height: 58px;
+    box-sizing: content-box;
   }
   .exam-nav-bar .btn-nav {
     flex: 1;
     min-width: 0;
     justify-content: center;
-    padding: .65rem .3rem;
-    font-size: .75rem;
+    padding: .5rem .2rem;
+    font-size: .72rem;
+    height: auto;
+    border-radius: 8px;
   }
   .exam-nav-bar .btn-end {
-    flex: 1.3;
-    padding: .65rem .5rem;
+    flex: 1.4;
+    padding: .5rem .4rem;
     font-size: .78rem;
+    border-radius: 8px;
+    height: auto;
   }
-  /* Hide the original nav-row on mobile (shown in bottom bar) */
-  .nav-row { display: none !important; }
-  /* Adjust q-panel height for exam bottom bar */
-  .exam-body {
-    height: calc(100dvh - 57px - env(safe-area-inset-bottom, 0px)) !important;
-    grid-template-rows: 1fr auto;
+
+  /* Warning counter: above the fixed bottom bar */
+  .warning-counter {
+    top: auto !important;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px) + .6rem) !important;
+    right: .75rem;
   }
-  .q-panel {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
-  }
-  /* Sidebar more compact */
-  .q-sidebar {
-    max-height: 160px !important;
-    padding: .65rem .75rem !important;
-    gap: .5rem !important;
-  }
-  .q-sidebar > div { min-width: 100px !important; }
-  .num-grid { grid-template-columns: repeat(10,1fr) !important; gap:.25rem !important; }
-  .num-btn { min-height: 30px !important; font-size: .6rem !important; }
-  .ans-summary { padding: .5rem !important; }
-  .ans-big { font-size: 1.2rem !important; }
-  /* ════════════════════════════════
+}
+
+/* ════════════════════════════════
    PRINT (export PDF)
 ════════════════════════════════ */
 @media print {
@@ -2756,9 +2814,9 @@ async function joinExam() {
     startTimer();
     initSecurity();
     showScreen('exam-screen');
-    // Show mobile exam nav bar (CSS will hide on desktop automatically)
+    // On mobile: clear inline style so CSS media query shows the bar
     if (window.innerWidth <= 768) {
-      document.getElementById('examNavBar').style.display = 'flex';
+      document.getElementById('examNavBar').style.display = '';
     }
   } catch(e) {
     joinBtn.disabled=false; joinBtn.textContent='Mulai Ujian →';
