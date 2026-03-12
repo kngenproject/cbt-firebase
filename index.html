@@ -1056,6 +1056,8 @@ td strong { color:var(--text); font-weight:600; }
   background: var(--accent);
   border-radius: 0 0 4px 4px;
 }
+.bnav-logout { color: var(--red) !important; opacity: .75; }
+.bnav-logout:active { background: rgba(239,68,68,.1); }
 .bnav-icon { font-size: 1.3rem; line-height: 1; display: block; }
 
 /* Sembunyikan bottom nav di layar lebar */
@@ -1435,6 +1437,10 @@ td strong { color:var(--text); font-weight:600; }
     <button class="bnav-item" id="bn-hasil"
       ontouchstart="navTap('hasil')" onclick="navTap('hasil')">
       <span class="bnav-icon">📋</span>Nilai
+    </button>
+    <button class="bnav-item bnav-logout"
+      ontouchstart="confirmLogout()" onclick="confirmLogout()">
+      <span class="bnav-icon">⎋</span>Keluar
     </button>
   </div>
 </div>
