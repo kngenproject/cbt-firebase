@@ -1463,6 +1463,21 @@ td strong { color:var(--text); font-weight:600; }
   </div>
 </div>
 
+<!-- ══ LOGOUT CONFIRM MODAL ══ -->
+<div class="modal-bg" id="logoutModal">
+  <div class="modal-box" style="max-width:360px">
+    <div style="text-align:center;margin-bottom:1.25rem">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">👋</div>
+      <h3 style="margin-bottom:.4rem">Keluar dari Akun?</h3>
+      <p style="margin-bottom:0">Kamu akan keluar sebagai <strong id="logoutEmail" style="color:var(--accent)">—</strong></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1" onclick="closeLogoutModal()">Batal</button>
+      <button class="btn btn-danger" style="flex:1" onclick="doLogout()">⎋ Ya, Keluar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════════════════════
      LOGIN / ROLE SELECT
 ════════════════════════════════ -->
@@ -1564,7 +1579,7 @@ td strong { color:var(--text); font-weight:600; }
       <div class="nav-item" data-page="sesi" onclick="switchPage('sesi')"><span class="nav-icon">📡</span> Sesi Aktif</div>
       <div class="nav-item" data-page="hasil" onclick="switchPage('hasil')"><span class="nav-icon">📋</span> Hasil & Nilai</div>
       <div class="nav-spacer"></div>
-      <div class="nav-logout" onclick="logout()">⎋ Keluar</div>
+      <div class="nav-logout" onclick="confirmLogout()">⎋ Keluar</div>
     </nav>
 
     <!-- Main -->
@@ -1938,12 +1953,33 @@ const FSDb = {
 };
 
 // ══════════════════════════════════════
-// AUTH STATE — cek login saat load
+// AUTH STATE — restore session otomatis saat halaman dibuka
 // ══════════════════════════════════════
-auth.onAuthStateChanged(user => {
-  if (user && APP.role === 'guru') {
-    // Sudah login, refresh dashboard
-    refreshDashboard();
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    // User masih login dari sesi sebelumnya
+    if (APP.role !== 'guru') {
+      APP.role = 'guru';
+      APP.guruEmail = user.email;
+      APP.guruName  = user.displayName || user.email.split('@')[0];
+      // Bersihkan data demo lama
+      const storedExams = DB.get('exams', []);
+      const cleanExams = storedExams.filter(e => e.code !== 'DEMO01');
+      if (cleanExams.length !== storedExams.length) DB.set('exams', cleanExams);
+      showScreen('guru-screen');
+      document.getElementById('bottomNav').classList.add('show');
+      await refreshDashboard();
+    }
+  } else {
+    // Tidak ada sesi aktif, pastikan di halaman login
+    if (APP.role === 'guru') {
+      APP.role = null;
+      APP.guruEmail = null;
+      APP.guruName = null;
+      document.getElementById('bottomNav').classList.remove('show');
+      showScreen('login-screen');
+      backToRole();
+    }
   }
 });
 
@@ -2114,17 +2150,24 @@ async function loginGuru() {
     APP.role = 'guru';
     APP.guruEmail = user.email;
     APP.guruName  = user.displayName || user.email.split('@')[0];
+    // Bersihkan data demo lama jika ada
+    const storedExams = DB.get('exams', []);
+    const cleanExams = storedExams.filter(e => e.code !== 'DEMO01');
+    if (cleanExams.length !== storedExams.length) DB.set('exams', cleanExams);
     showScreen('guru-screen');
     document.getElementById('bottomNav').classList.add('show');
     await refreshDashboard();
     toast(`Selamat datang, ${APP.guruName}! 👋`, 'success');
   } catch(e) {
     const msg = {
-      'auth/user-not-found': 'Email tidak terdaftar!',
-      'auth/wrong-password': 'Password salah!',
-      'auth/invalid-email': 'Format email tidak valid!',
+      'auth/user-not-found':    'Email tidak terdaftar!',
+      'auth/wrong-password':    'Password salah!',
+      'auth/invalid-email':     'Format email tidak valid!',
       'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
-      'auth/invalid-credential': 'Email atau password salah!',
+      'auth/invalid-credential':'Email atau password salah!',
+      'auth/requests-from-referer-are-blocked': 'Domain ini belum diizinkan Firebase. Tambahkan domain di Firebase Console → Authentication → Settings → Authorized domains.',
+      'auth/unauthorized-domain': 'Domain tidak diizinkan. Tambahkan di Firebase Console → Authentication → Authorized domains.',
+      'auth/network-request-failed': 'Gagal terhubung ke server. Periksa koneksi internet.',
     }[e.code] || 'Login gagal: ' + e.message;
     toast(msg, 'error');
   } finally {
@@ -2173,7 +2216,17 @@ async function resetPassword() {
   }
 }
 
-async function logout() {
+function confirmLogout() {
+  document.getElementById('logoutEmail').textContent = APP.guruName || APP.guruEmail || 'Guru';
+  document.getElementById('logoutModal').classList.add('show');
+}
+
+function closeLogoutModal() {
+  document.getElementById('logoutModal').classList.remove('show');
+}
+
+async function doLogout() {
+  closeLogoutModal();
   try { await auth.signOut(); } catch(e) {}
   APP.role = null;
   APP.guruEmail = null;
@@ -2182,6 +2235,9 @@ async function logout() {
   showScreen('login-screen');
   backToRole();
 }
+
+// Alias untuk kompatibilitas
+async function logout() { confirmLogout(); }
 
 // ══════════════════════════════════════
 // GURU DASHBOARD NAVIGATION
@@ -2375,13 +2431,25 @@ async function toggleExamStatus(code) {
   }
 }
 
-async function deleteExam(code) {
-  if (!confirm('Hapus ujian ini? Data hasil tetap tersimpan.')) return;
-  APP.exams = DB.get('exams', []).filter(e => e.code !== code);
-  DB.set('exams', APP.exams);
-  await FSDb.deleteExam(code);
-  refreshDashboard();
-  toast('Ujian dihapus', 'info');
+function deleteExam(code) {
+  const exam = APP.exams.find(e => e.code === code);
+  const modal = document.getElementById('confirmModal');
+  document.getElementById('modalTitle').textContent = 'Hapus Ujian?';
+  document.getElementById('modalMsg').textContent = `Ujian "${exam?.title || code}" akan dihapus. Data hasil tetap tersimpan.`;
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+  confirmBtn.textContent = 'Ya, Hapus';
+  confirmBtn.onclick = async function() {
+    confirmBtn.disabled = true;
+    closeModal();
+    APP.exams = DB.get('exams', []).filter(e => e.code !== code);
+    DB.set('exams', APP.exams);
+    await FSDb.deleteExam(code);
+    refreshDashboard();
+    toast('Ujian dihapus', 'info');
+    confirmBtn.textContent = 'Ya, Selesai';
+    confirmBtn.disabled = false;
+  };
+  modal.classList.add('show');
 }
 
 // ══════════════════════════════════════
@@ -2745,7 +2813,6 @@ async function renderHasil() {
 }
 
 function exportCSV() {
-  APP.results = DB.get('results', []);
   const filter = document.getElementById('filterExam').value;
   const data = filter ? APP.results.filter(r=>r.examCode===filter) : APP.results;
   if (!data.length) { toast('Tidak ada data untuk diekspor', 'error'); return; }
@@ -2765,7 +2832,6 @@ function exportCSV() {
 }
 
 function exportPDF() {
-  APP.results = DB.get('results', []);
   const filter = document.getElementById('filterExam').value;
   const data = filter ? APP.results.filter(r=>r.examCode===filter) : APP.results;
   if (!data.length) { toast('Tidak ada data untuk diekspor', 'error'); return; }
@@ -3274,9 +3340,9 @@ function triggerViolation(msg) {
   document.getElementById('secMsg').textContent = msg + ' Pelanggaran ke-' + APP.violations + ' dari ' + APP.maxViolations + '.';
 
   if (APP.violations >= APP.maxViolations) {
-    // Auto submit, cegah double
+    // Cegah double trigger, tapi jangan set isSubmitting=true di sini
+    // karena submitExam() sudah punya guard sendiri
     if (isSubmitting) return;
-    isSubmitting = true;
     // Bersihkan countdown interval yang mungkin sedang berjalan
     if (violationCountdown) { clearInterval(violationCountdown); violationCountdown = null; }
     document.getElementById('secCount').textContent = '⚠';
@@ -3286,7 +3352,7 @@ function triggerViolation(msg) {
     overlay.querySelector('.sec-msg').textContent = 'Batas pelanggaran tercapai. Ujian akan di-submit otomatis.';
     setTimeout(() => {
       overlay.classList.remove('show');
-      submitExam();
+      submitExam(); // submitExam punya guard isSubmitting sendiri
     }, 3000);
     return;
   }
@@ -3294,15 +3360,16 @@ function triggerViolation(msg) {
   // Bersihkan interval violation sebelumnya jika ada
   if (violationCountdown) { clearInterval(violationCountdown); violationCountdown = null; }
 
-  // Show countdown overlay
+  // Show countdown overlay (3 detik)
+  const COUNTDOWN_SEC = 3;
   overlay.classList.add('show');
-  let countdown = 3;
+  let countdown = COUNTDOWN_SEC;
   document.getElementById('secCount').textContent = countdown;
   document.getElementById('secBarFill').style.width = '100%';
   violationCountdown = setInterval(() => {
     countdown--;
     document.getElementById('secCount').textContent = countdown;
-    document.getElementById('secBarFill').style.width = `${(countdown/3)*100}%`;
+    document.getElementById('secBarFill').style.width = `${(countdown/COUNTDOWN_SEC)*100}%`;
     if (countdown <= 0) {
       clearInterval(violationCountdown);
       violationCountdown = null;
@@ -3318,6 +3385,8 @@ function updateWarnCounter() {
     el.classList.add('show');
     document.getElementById('warnNum').textContent = APP.violations;
   }
+  // Update max label dynamically
+  el.innerHTML = `⚠ Pelanggaran: <span id="warnNum">${APP.violations}</span>/${APP.maxViolations}`;
 }
 
 // ══════════════════════════════════════
@@ -3327,24 +3396,6 @@ function updateWarnCounter() {
 APP.uploadedSoal = DB.get('uploadedSoal', []);
 APP.exams = DB.get('exams', []);
 APP.results = DB.get('results', []);
-
-// Demo: seed data if empty
-if (!APP.exams.length) {
-  const demoExam = {
-    code: 'DEMO01',
-    title: 'Demo Ujian Matematika',
-    mapel: 'Matematika',
-    dur: 45,
-    maxP: 30,
-    acak: false,
-    sec: 3,
-    questions: BANKS.matematika,
-    status: 'aktif',
-    createdAt: new Date().toLocaleString('id-ID'),
-  };
-  DB.set('exams', [demoExam]);
-  APP.exams = [demoExam];
-}
 </script>
 </body>
 </html>
