@@ -1047,6 +1047,46 @@ td strong { color:var(--text); font-weight:600; }
 .modal-actions { display:flex; gap:.75rem; }
 
 /* ════════════════════════════════
+   OVERLAY WARNING (Android anti-overlay)
+════════════════════════════════ */
+.overlay-warning {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: rgba(251,146,60,.97);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem;
+  animation: screenIn .2s ease;
+}
+.overlay-warning.show { display: flex; }
+.overlay-warning-icon { font-size: 4rem; }
+.overlay-warning-title { font-size: 1.4rem; font-weight: 800; color: #050c14; line-height: 1.2; }
+.overlay-warning-desc { font-size: .9rem; color: rgba(0,0,0,.65); max-width: 320px; }
+.overlay-warning-btn {
+  margin-top: .5rem;
+  background: #050c14;
+  color: var(--orange);
+  border: none;
+  border-radius: var(--r);
+  padding: .8rem 2rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 800;
+  font-size: .95rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Exit exam modal accent */
+#exitExamModal .modal-box::before {
+  background: linear-gradient(90deg, var(--orange), var(--red));
+}
+
+/* ════════════════════════════════
    TOAST
 ════════════════════════════════ */
 .toast {
@@ -1796,6 +1836,29 @@ td strong { color:var(--text); font-weight:600; }
   </div>
 </div>
 
+<!-- ══ EXIT EXAM CONFIRM MODAL ══ -->
+<div class="modal-bg" id="exitExamModal">
+  <div class="modal-box" style="max-width:360px">
+    <div style="text-align:center;margin-bottom:1.25rem">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">⚠️</div>
+      <h3 style="margin-bottom:.4rem">Keluar dari Ujian?</h3>
+      <p style="margin-bottom:0;color:var(--text2)">Ujian masih berlangsung. Jika keluar, semua jawaban akan hilang dan tidak bisa kembali lagi.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-green" style="flex:1" onclick="closeExitExamModal()">↩ Lanjut Ujian</button>
+      <button class="btn btn-danger" style="flex:1" onclick="forceExitExam()">Keluar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANDROID OVERLAY WARNING ══ -->
+<div class="overlay-warning" id="overlayWarning">
+  <div class="overlay-warning-icon">🛡️</div>
+  <div class="overlay-warning-title">Overlay Terdeteksi!</div>
+  <div class="overlay-warning-desc">Ada aplikasi lain yang menimpa layar ujian. Nonaktifkan overlay app (screen recorder, assistive touch, dll) untuk melanjutkan.</div>
+  <button class="overlay-warning-btn" onclick="dismissOverlayWarning()">Saya Sudah Menutupnya</button>
+</div>
+
 <!-- ══ QR SCAN MODAL ══ -->
 <div class="qr-scan-modal" id="qrScanModal">
   <div class="qr-scan-box">
@@ -2215,17 +2278,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       </div>
       <div class="result-actions">
         <button class="btn btn-outline" style="flex:1" onclick="goToDashboard()">← Kembali</button>
-        <button class="btn btn-primary" style="flex:1" onclick="printResult()">🖨️ Cetak</button>
-        <button class="btn btn-green" style="flex:1" onclick="retakeExam()">↻ Ulangi</button>
       </div>
-    </div>
-    <!-- Ranking Card -->
-    <div class="rank-card" id="rankCard" style="display:none">
-      <div class="rank-header">
-        <span style="font-size:.9rem;font-weight:700">🏆 Peringkat Ujian</span>
-        <span class="badge badge-blue" id="rankBadge">—</span>
-      </div>
-      <div class="rank-list" id="rankList"></div>
     </div>
   </div>
 </div>
@@ -3275,6 +3328,8 @@ async function joinExam() {
   renderQ();
   startTimer();
   initSecurity();
+  initBackButtonGuard();
+  initOverlayDetection();
   showScreen('exam-screen');
 }
 
@@ -3510,42 +3565,7 @@ function showResult(r) {
     </div>`;
   }).join('');
 
-  // Ranking
-  showRanking(r);
-
   showScreen('result-screen');
-}
-
-async function showRanking(r) {
-  try {
-    const allResults = await FSDb.getResults(r.examCode);
-    _renderRanking(r, allResults.length ? allResults : DB.get('results',[]).filter(x=>x.examCode===r.examCode));
-  } catch {
-    _renderRanking(r, DB.get('results',[]).filter(x=>x.examCode===r.examCode));
-  }
-}
-
-function _renderRanking(r, sameExam) {
-  if (!sameExam.length) { document.getElementById('rankCard').style.display='none'; return; }
-  const toSec = d => { const p=(d||'0:0').split(':'); return parseInt(p[0])*60+parseInt(p[1]); };
-  const sorted = [...sameExam].sort((a,b) => b.score!==a.score ? b.score-a.score : toSec(a.duration)-toSec(b.duration));
-  const myRank = sorted.findIndex(x => x.nis===r.nis && x.score===r.score) + 1;
-  document.getElementById('rankCard').style.display = 'block';
-  document.getElementById('rankBadge').textContent = `Peringkat ${myRank} dari ${sorted.length}`;
-  const medals = ['🥇','🥈','🥉'];
-  const posClasses = ['gold','silver','bronze'];
-  document.getElementById('rankList').innerHTML = sorted.map((x,i) => {
-    const isSelf = x.nis===r.nis && x.score===r.score;
-    const scoreColor = x.score>=80?'var(--green)':x.score>=60?'var(--accent)':x.score>=40?'var(--yellow)':'var(--red)';
-    return `<div class="rank-item ${isSelf?'self':''}">
-      <div class="rank-pos ${posClasses[i]||''}">${i<3?medals[i]:`#${i+1}`}</div>
-      <div class="rank-name">
-        <strong>${x.name}${isSelf?' ← Kamu':''}</strong>
-        <small>${x.nis}</small>
-      </div>
-      <div class="rank-score" style="color:${scoreColor}">${x.score}</div>
-    </div>`;
-  }).join('');
 }
 
 function goToDashboard() {
@@ -3558,36 +3578,6 @@ function goToDashboard() {
     showScreen('login-screen');
     backToRole();
   }
-}
-
-function printResult() { window.print(); }
-
-function retakeExam() {
-  stopSecurity();
-  if (APP.examCfg) {
-    // Reshuffle soal jika opsi acak aktif
-    const exam = APP.examCfg.exam;
-    APP.questions = exam.acak ? shuffle([...exam.questions]) : [...exam.questions];
-    APP.answers = new Array(APP.questions.length).fill(null);
-    APP.flags   = new Array(APP.questions.length).fill(false);
-    APP.current = 0;
-    APP.timeLeft = exam.dur * 60;
-    APP.violations = 0;
-    APP.startTime = Date.now();
-    APP.reviewMode = false;
-    isSubmitting = false;
-    lastViolationTime = 0;
-    if (violationCountdown) { clearInterval(violationCountdown); violationCountdown = null; }
-    clearInterval(APP.timerInt);
-    APP.timerInt = null;
-    document.getElementById('timerVal').textContent = '—:——';
-    document.getElementById('timerVal').className = 'timer-val';
-    buildNumGrid();
-    renderQ();
-    startTimer();
-    initSecurity();
-    showScreen('exam-screen');
-  } else { goToDashboard(); }
 }
 
 // ══════════════════════════════════════
@@ -3642,6 +3632,92 @@ function stopSecurity() {
   // Close any open overlay
   document.getElementById('secOverlay').classList.remove('show');
   document.getElementById('warnCounter').classList.remove('show');
+  document.getElementById('overlayWarning').classList.remove('show');
+  document.getElementById('exitExamModal').classList.remove('show');
+  // Stop back button guard & overlay detection
+  stopBackButtonGuard();
+  stopOverlayDetection();
+}
+
+// ══════════════════════════════════════
+// BACK BUTTON GUARD (Android tombol kembali)
+// ══════════════════════════════════════
+function initBackButtonGuard() {
+  // Dorong state palsu agar tombol back Android trigger popstate, bukan navigasi keluar
+  history.pushState({ examGuard: true }, '', window.location.href);
+  window.addEventListener('popstate', _handleBackButton);
+}
+
+function stopBackButtonGuard() {
+  window.removeEventListener('popstate', _handleBackButton);
+}
+
+function _handleBackButton(e) {
+  if (!document.getElementById('exam-screen').classList.contains('active')) return;
+  // Dorong kembali agar back button tidak membuatnya exit
+  history.pushState({ examGuard: true }, '', window.location.href);
+  showExitExamModal();
+}
+
+function showExitExamModal() {
+  document.getElementById('exitExamModal').classList.add('show');
+}
+
+function closeExitExamModal() {
+  document.getElementById('exitExamModal').classList.remove('show');
+}
+
+function forceExitExam() {
+  closeExitExamModal();
+  stopSecurity();
+  clearInterval(APP.timerInt);
+  APP.timerInt = null;
+  isSubmitting = false;
+  APP.role = null;
+  document.getElementById('bottomNav').classList.remove('show');
+  showScreen('login-screen');
+  backToRole();
+  toast('Ujian dibatalkan.', 'info');
+}
+
+// ══════════════════════════════════════
+// ANDROID OVERLAY DETECTION
+// ══════════════════════════════════════
+let _overlayCheckInterval = null;
+let _overlayDismissed = false;
+
+function initOverlayDetection() {
+  _overlayDismissed = false;
+  // Deteksi sentuhan yang terhalang overlay app lain (Android Chrome API)
+  document.addEventListener('touchstart', _checkObscuredTouch, { passive: false, capture: true });
+}
+
+function stopOverlayDetection() {
+  document.removeEventListener('touchstart', _checkObscuredTouch, { capture: true });
+  if (_overlayCheckInterval) { clearInterval(_overlayCheckInterval); _overlayCheckInterval = null; }
+}
+
+function _checkObscuredTouch(e) {
+  if (!document.getElementById('exam-screen').classList.contains('active')) return;
+  if (_overlayDismissed) return;
+  // getModifierState('Obscured') = true saat ada overlay app di atasnya (Android WebView / Chrome)
+  if (e.getModifierState && e.getModifierState('Obscured')) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    _triggerOverlayViolation();
+  }
+}
+
+function _triggerOverlayViolation() {
+  document.getElementById('overlayWarning').classList.add('show');
+  triggerViolation('Overlay aplikasi terdeteksi! Layar ujian diblokir.');
+}
+
+function dismissOverlayWarning() {
+  document.getElementById('overlayWarning').classList.remove('show');
+  // Set dismissed sementara agar tidak langsung trigger lagi (1 detik cooldown)
+  _overlayDismissed = true;
+  setTimeout(() => { _overlayDismissed = false; }, 1000);
 }
 
 function blockCtx(e) { if (document.getElementById('exam-screen').classList.contains('active')) e.preventDefault(); }
@@ -3773,8 +3849,17 @@ async function startCamera() {
       video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
     });
     video.srcObject = qrStream;
-    // { once: true } agar listener tidak menumpuk jika modal dibuka berulang
-    video.addEventListener('loadeddata', tickQR, { once: true });
+    await video.play();
+    // Mulai tick setelah video siap play
+    video.addEventListener('playing', function onPlaying() {
+      video.removeEventListener('playing', onPlaying);
+      tickQR();
+    });
+    // Fallback: jika 'playing' tidak fired, coba setelah loadeddata
+    video.addEventListener('loadeddata', function onLoaded() {
+      video.removeEventListener('loadeddata', onLoaded);
+      if (qrActive && !qrAnimFrame) tickQR();
+    }, { once: true });
   } catch(e) {
     errMsg.textContent = 'Kamera tidak bisa diakses. Pastikan izin kamera sudah diberikan.';
     errMsg.classList.add('show');
