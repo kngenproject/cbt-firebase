@@ -661,7 +661,7 @@ td strong { color:var(--text); font-weight:600; }
 
 .nav-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: auto auto;
   gap: .5rem;
 }
@@ -1090,10 +1090,11 @@ td strong { color:var(--text); font-weight:600; }
   #guru-screen .dash-main {
     padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1rem);
   }
-  #exam-screen { height: 100%; overflow: hidden; }
-  #result-screen {
+  /* result-screen hanya diberi padding jika bottom-nav aktif (guru) */
+  .bottom-nav.show ~ #result-screen {
     padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1rem);
   }
+  #exam-screen { height: 100%; overflow: hidden; }
 
   /* ── Login ── */
   #login-screen { padding: 1.25rem 1rem; padding-top: max(1.5rem, env(safe-area-inset-top)); }
@@ -1124,7 +1125,7 @@ td strong { color:var(--text); font-weight:600; }
   .exam-body {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto;
-    height: calc(100vh - 57px - 52px - env(safe-area-inset-bottom, 0px));
+    height: calc(100vh - 57px - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
   }
   .q-panel {
@@ -1134,6 +1135,8 @@ td strong { color:var(--text); font-weight:600; }
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     flex: 1;
+    /* ruang untuk nav-row sticky di bawah */
+    padding-bottom: 7.5rem;
   }
   .q-sidebar {
     border-top: 1px solid var(--border);
@@ -1152,8 +1155,17 @@ td strong { color:var(--text); font-weight:600; }
   .opt-key { width: 34px; height: 34px; font-size: .78rem; }
   .opt-txt { font-size: .9rem; padding-top: 5px; }
 
-  /* ── Nav buttons ── */
-  .nav-row { gap: .4rem; }
+  /* ── Nav buttons — sticky di dasar q-panel ── */
+  .nav-row {
+    position: sticky;
+    bottom: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: .6rem 1rem .5rem;
+    margin: 0 -1rem -1rem;
+    z-index: 50;
+    gap: .4rem;
+  }
   .btn-nav { font-size: .8rem; padding: .7rem .4rem; min-height: 44px; }
   .btn-end { font-size: .875rem; padding: .8rem; min-height: 44px; }
 
@@ -1245,12 +1257,171 @@ td strong { color:var(--text); font-weight:600; }
   @media (max-width:768px) {
     html, body { height: 100dvh; }
     .exam-body {
-      height: calc(100dvh - 57px - 52px - env(safe-area-inset-bottom, 0px));
+      height: calc(100dvh - 57px - env(safe-area-inset-bottom, 0px));
     }
   }
 }
 
-/* QR Code display */
+/* ════════════════════════════════
+   LIVE SCORE STRIP (mobile siswa)
+════════════════════════════════ */
+
+/* ════════════════════════════════
+   QR SCAN MODAL
+════════════════════════════════ */
+.qr-scan-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0,0,0,.88);
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.qr-scan-modal.open { display: flex; }
+.qr-scan-box {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r3);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  position: relative;
+}
+.qr-scan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .9rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+.qr-scan-title { font-weight: 700; font-size: .95rem; }
+.qr-scan-close {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem;
+  transition: border-color .15s;
+}
+.qr-scan-close:hover { border-color: var(--red); color: var(--red); }
+.qr-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #000;
+  overflow: hidden;
+}
+#qrVideo {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+#qrCanvas { display: none; }
+.qr-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.qr-frame {
+  width: 65%;
+  aspect-ratio: 1;
+  border: 2.5px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.4);
+  position: relative;
+}
+.qr-frame::before, .qr-frame::after,
+.qr-frame > span::before, .qr-frame > span::after {
+  content: '';
+  position: absolute;
+  width: 22px; height: 22px;
+  border-color: var(--accent);
+  border-style: solid;
+}
+.qr-frame::before     { top:-2px; left:-2px;  border-width:3px 0 0 3px; border-radius:12px 0 0 0; }
+.qr-frame::after      { top:-2px; right:-2px; border-width:3px 3px 0 0; border-radius:0 12px 0 0; }
+.qr-frame > span::before { bottom:-2px; left:-2px;  border-width:0 0 3px 3px; border-radius:0 0 0 12px; }
+.qr-frame > span::after  { bottom:-2px; right:-2px; border-width:0 3px 3px 0; border-radius:0 0 12px 0; }
+.qr-scan-line {
+  position: absolute;
+  left: 8%; right: 8%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: scanLine 2s ease-in-out infinite;
+  border-radius: 2px;
+}
+@keyframes scanLine {
+  0%   { top: 10%; opacity: 1; }
+  48%  { top: 88%; opacity: 1; }
+  50%  { opacity: 0; }
+  52%  { top: 10%; opacity: 0; }
+  54%  { opacity: 1; }
+  100% { top: 88%; opacity: 1; }
+}
+.qr-scan-footer {
+  padding: .9rem 1.1rem;
+  text-align: center;
+}
+.qr-scan-hint {
+  font-size: .78rem;
+  color: var(--text2);
+  margin-bottom: .75rem;
+}
+.qr-detected {
+  display: none;
+  align-items: center;
+  gap: .5rem;
+  justify-content: center;
+  background: var(--green-dim);
+  border: 1px solid rgba(74,222,128,.3);
+  border-radius: 8px;
+  padding: .5rem .875rem;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--green);
+}
+.qr-detected.show { display: flex; }
+.qr-error-msg {
+  display: none;
+  font-size: .78rem;
+  color: var(--red);
+  background: var(--red-dim);
+  border-radius: 8px;
+  padding: .5rem .875rem;
+  text-align: center;
+}
+.qr-error-msg.show { display: block; }
+
+/* ── Tombol scan di field kode ujian ── */
+.code-input-wrap {
+  display: flex;
+  gap: .5rem;
+  align-items: stretch;
+}
+.code-input-wrap input { flex: 1; min-width: 0; }
+.btn-scan-qr {
+  flex-shrink: 0;
+  background: var(--accent-dim);
+  border: 1.5px solid rgba(56,189,248,.35);
+  border-radius: var(--r);
+  color: var(--accent);
+  font-size: 1.3rem;
+  width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .15s;
+  min-height: 44px;
+}
+.btn-scan-qr:hover { background: rgba(56,189,248,.2); border-color: var(--accent); }
 .qr-container {
   display:flex;
   flex-direction:column;
@@ -1393,6 +1564,8 @@ td strong { color:var(--text); font-weight:600; }
   .screenshot-watermark { display:none !important; }
 }
 </style>
+<!-- jsQR (scan QR) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <!-- QRCode.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- Firebase Compat SDK v9 (supports legacy firebase.xxx syntax) -->
@@ -1484,6 +1657,32 @@ td strong { color:var(--text); font-weight:600; }
   </div>
 </div>
 
+<!-- ══ QR SCAN MODAL ══ -->
+<div class="qr-scan-modal" id="qrScanModal">
+  <div class="qr-scan-box">
+    <div class="qr-scan-header">
+      <div>
+        <div class="qr-scan-title">📷 Scan QR Kode Ujian</div>
+      </div>
+      <div class="qr-scan-close" onclick="closeQRScan()">✕</div>
+    </div>
+    <div class="qr-viewport">
+      <video id="qrVideo" autoplay playsinline muted></video>
+      <canvas id="qrCanvas"></canvas>
+      <div class="qr-overlay">
+        <div class="qr-frame"><span></span>
+          <div class="qr-scan-line"></div>
+        </div>
+      </div>
+    </div>
+    <div class="qr-scan-footer">
+      <div class="qr-scan-hint">Arahkan kamera ke QR code yang ditampilkan guru</div>
+      <div class="qr-detected" id="qrDetected">✓ Kode terdeteksi: <strong id="qrDetectedCode">—</strong></div>
+      <div class="qr-error-msg" id="qrErrorMsg"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════════════════════
      LOGIN / ROLE SELECT
 ════════════════════════════════ -->
@@ -1562,9 +1761,12 @@ td strong { color:var(--text); font-weight:600; }
     <div class="field"><label>No. Peserta / NIS</label><input type="text" id="siswaNIS" placeholder="2024-001"></div>
     <div class="field">
       <label>Kode Ujian</label>
-      <input type="text" id="siswaCode" placeholder="Contoh: ABC123" style="text-transform:uppercase;letter-spacing:.15em;font-family:'Space Mono',monospace;font-size:1.1rem" oninput="this.value=this.value.toUpperCase()">
-      <div style="margin-top:.5rem;font-size:.72rem;color:var(--text3);text-align:center">
-        📷 Minta guru untuk menampilkan QR code ujian
+      <div class="code-input-wrap">
+        <input type="text" id="siswaCode" placeholder="Contoh: ABC123" style="text-transform:uppercase;letter-spacing:.15em;font-family:'Space Mono',monospace;font-size:1.1rem" oninput="this.value=this.value.toUpperCase()">
+        <button class="btn-scan-qr" onclick="openQRScan()" title="Scan QR Code" type="button">📷</button>
+      </div>
+      <div style="margin-top:.4rem;font-size:.72rem;color:var(--text3);text-align:center">
+        Ketik manual atau tekan 📷 untuk scan QR
       </div>
     </div>
     <button class="btn btn-primary" onclick="joinExam()">Mulai Ujian →</button>
@@ -1791,6 +1993,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
     </div>
   </div>
 
+
   <div class="exam-body">
     <div class="q-panel">
       <div class="q-meta">
@@ -1811,14 +2014,6 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
     </div>
 
     <div class="q-sidebar">
-      <div>
-        <div class="sidebar-sec">Nilai Real-time</div>
-        <div class="live-score-panel">
-          <div class="live-score-label">Estimasi Nilai</div>
-          <span class="live-score-val" id="liveScore" style="color:var(--accent)">—</span>
-          <div class="live-score-sub" id="liveScoreSub">0 benar · 0 salah</div>
-        </div>
-      </div>
       <div>
         <div class="sidebar-sec">Navigasi Soal</div>
         <div class="num-grid" id="numGrid"></div>
@@ -2114,6 +2309,9 @@ function toast(msg, type='info') {
 
 function closeModal() {
   document.getElementById('confirmModal').classList.remove('show');
+  // Reset tombol konfirmasi agar bisa dipakai ulang
+  const btn = document.getElementById('modalConfirmBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Ya, Selesai'; }
 }
 
 // ══════════════════════════════════════
@@ -3017,12 +3215,16 @@ function updateLiveScore() {
     }
   });
   const answered = correct + wrong;
+  const skipped = total - answered;
   const estimatedScore = answered > 0 ? Math.round((correct / total) * 100) : 0;
+  const scoreColor = estimatedScore >= 80 ? 'var(--green)' : estimatedScore >= 60 ? 'var(--accent)' : estimatedScore >= 40 ? 'var(--yellow)' : (answered > 0 ? 'var(--red)' : 'var(--accent)');
+
+  // Sidebar (desktop)
   const el = document.getElementById('liveScore');
   const sub = document.getElementById('liveScoreSub');
   if (el) {
     el.textContent = answered > 0 ? estimatedScore : '—';
-    el.style.color = estimatedScore >= 80 ? 'var(--green)' : estimatedScore >= 60 ? 'var(--accent)' : estimatedScore >= 40 ? 'var(--yellow)' : (answered > 0 ? 'var(--red)' : 'var(--accent)');
+    el.style.color = scoreColor;
   }
   if (sub) sub.textContent = `${correct} benar · ${wrong} salah`;
 }
@@ -3055,8 +3257,10 @@ function confirmEnd() {
   document.getElementById('modalMsg').textContent = unanswered > 0
     ? `Masih ada ${unanswered} soal belum dijawab. Yakin ingin mengakhiri?`
     : 'Semua soal sudah dijawab. Akhiri ujian sekarang?';
-  // Nonaktifkan tombol setelah diklik untuk mencegah double
   const confirmBtn = document.getElementById('modalConfirmBtn');
+  // Selalu reset state tombol sebelum tampilkan modal
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'Ya, Selesai';
   confirmBtn.onclick = function() {
     confirmBtn.disabled = true;
     submitExam();
@@ -3220,22 +3424,25 @@ function goToDashboard() {
 function printResult() { window.print(); }
 
 function retakeExam() {
-  // Hentikan security dulu
   stopSecurity();
   if (APP.examCfg) {
-    // reset state
+    // Reshuffle soal jika opsi acak aktif
+    const exam = APP.examCfg.exam;
+    APP.questions = exam.acak ? shuffle([...exam.questions]) : [...exam.questions];
     APP.answers = new Array(APP.questions.length).fill(null);
-    APP.flags = new Array(APP.questions.length).fill(false);
+    APP.flags   = new Array(APP.questions.length).fill(false);
     APP.current = 0;
-    APP.timeLeft = APP.examCfg.exam.dur * 60;
+    APP.timeLeft = exam.dur * 60;
     APP.violations = 0;
     APP.startTime = Date.now();
     APP.reviewMode = false;
     isSubmitting = false;
     lastViolationTime = 0;
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = null;
+    if (violationCountdown) { clearInterval(violationCountdown); violationCountdown = null; }
+    clearInterval(APP.timerInt);
+    APP.timerInt = null;
     document.getElementById('timerVal').textContent = '—:——';
+    document.getElementById('timerVal').className = 'timer-val';
     buildNumGrid();
     renderQ();
     startTimer();
@@ -3387,12 +3594,100 @@ function triggerViolation(msg) {
 function updateWarnCounter() {
   const el = document.getElementById('warnCounter');
   if (!APP.secActive) { el.classList.remove('show'); return; }
+  // Selalu update teks terlebih dahulu
+  el.innerHTML = `⚠ Pelanggaran: <span id="warnNum">${APP.violations}</span>/${APP.maxViolations}`;
   if (APP.violations > 0) {
     el.classList.add('show');
-    document.getElementById('warnNum').textContent = APP.violations;
+  } else {
+    el.classList.remove('show');
   }
-  // Update max label dynamically
-  el.innerHTML = `⚠ Pelanggaran: <span id="warnNum">${APP.violations}</span>/${APP.maxViolations}`;
+}
+
+// ══════════════════════════════════════
+// QR CODE SCANNER (SISWA)
+// ══════════════════════════════════════
+let qrStream = null;
+let qrAnimFrame = null;
+let qrActive = false;
+
+function openQRScan() {
+  const modal = document.getElementById('qrScanModal');
+  const detected = document.getElementById('qrDetected');
+  const errMsg = document.getElementById('qrErrorMsg');
+  detected.classList.remove('show');
+  errMsg.classList.remove('show');
+  modal.classList.add('open');
+  startCamera();
+}
+
+function closeQRScan() {
+  document.getElementById('qrScanModal').classList.remove('open');
+  stopCamera();
+}
+
+async function startCamera() {
+  const video = document.getElementById('qrVideo');
+  const errMsg = document.getElementById('qrErrorMsg');
+  qrActive = true;
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
+    });
+    video.srcObject = qrStream;
+    // { once: true } agar listener tidak menumpuk jika modal dibuka berulang
+    video.addEventListener('loadeddata', tickQR, { once: true });
+  } catch(e) {
+    errMsg.textContent = 'Kamera tidak bisa diakses. Pastikan izin kamera sudah diberikan.';
+    errMsg.classList.add('show');
+  }
+}
+
+function stopCamera() {
+  qrActive = false;
+  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+  if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+  const video = document.getElementById('qrVideo');
+  video.srcObject = null;
+}
+
+function tickQR() {
+  if (!qrActive) return;
+  const video = document.getElementById('qrVideo');
+  const canvas = document.getElementById('qrCanvas');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+    qrAnimFrame = requestAnimationFrame(tickQR); return;
+  }
+  const size = Math.min(video.videoWidth, video.videoHeight);
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const ox = (video.videoWidth  - size) / 2;
+  const oy = (video.videoHeight - size) / 2;
+  ctx.drawImage(video, ox, oy, size, size, 0, 0, size, size);
+  const imgData = ctx.getImageData(0, 0, size, size);
+  const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) {
+    const raw = code.data.trim().toUpperCase();
+    // Ambil bagian kode saja (support jika QR berisi URL dengan kode di akhir)
+    const match = raw.match(/([A-Z0-9]{4,10})$/);
+    const kode = match ? match[1] : raw;
+    onQRDetected(kode);
+    return;
+  }
+  qrAnimFrame = requestAnimationFrame(tickQR);
+}
+
+function onQRDetected(kode) {
+  stopCamera();
+  document.getElementById('qrDetectedCode').textContent = kode;
+  document.getElementById('qrDetected').classList.add('show');
+  // Auto-fill ke input siswa
+  const input = document.getElementById('siswaCode');
+  if (input) input.value = kode;
+  // Tutup modal setelah sebentar
+  setTimeout(() => {
+    closeQRScan();
+    toast('Kode ujian terisi: ' + kode, 'success');
+  }, 900);
 }
 
 // ══════════════════════════════════════
