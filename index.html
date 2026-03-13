@@ -193,7 +193,7 @@ body {
 .form-header h2 { font-size:1.15rem; font-weight:700; }
 .form-header p { font-size:.75rem; color:var(--text2); }
 
-.field { margin-bottom:1.1rem; }
+.field { margin-bottom:1.1rem; min-width:0; }
 label {
   display:block;
   font-size:.72rem;
@@ -215,6 +215,7 @@ input, select, textarea {
   outline:none;
   transition: border-color .2s, box-shadow .2s;
   -webkit-appearance:none;
+  text-overflow: ellipsis;
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
@@ -505,6 +506,15 @@ td strong { color:var(--text); font-weight:600; }
 }
 .soal-opt.correct { background:var(--green-dim); border-color:rgba(74,222,128,.3); color:var(--green); }
 .soal-actions { display:flex; gap:.4rem; flex-shrink:0; }
+
+/* Kode ujian display */
+.buat-actions {
+  display: flex;
+  gap: .75rem;
+  justify-content: flex-end;
+  margin-top: .5rem;
+}
+.buat-actions .btn { min-width: 0; }
 
 /* Kode ujian display */
 .exam-code-display {
@@ -1073,6 +1083,13 @@ td strong { color:var(--text); font-weight:600; }
   .dash-layout { grid-template-columns:1fr; }
   .dash-sidebar { display:none; }
   .dash-main { padding:1.25rem; }
+
+  /* 3-kolom selalu jadi 1 kolom saat sidebar hilang */
+  .form-grid-3 { grid-template-columns: 1fr 1fr; }
+
+  /* Tombol aksi Buat — wrap di tablet */
+  .buat-actions { flex-wrap: wrap; }
+  .buat-actions .btn { flex: 1; min-width: 140px; }
 }
 
 /* ════════════════════════════════
@@ -1186,6 +1203,16 @@ td strong { color:var(--text); font-weight:600; }
   [style*="grid-template-columns:1fr 1fr 1fr"],
   [style*="grid-template-columns: 1fr 1fr 1fr"] {
     grid-template-columns: 1fr !important;
+  }
+
+  /* Tombol aksi Buat — stack penuh di mobile */
+  .buat-actions {
+    flex-direction: column;
+    gap: .6rem;
+  }
+  .buat-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   /* Tables: horizontal scroll */
@@ -1827,7 +1854,7 @@ td strong { color:var(--text); font-weight:600; }
         <div class="page-header">
           <div><h2>Buat Ujian Baru</h2><p>Konfigurasi dan publikasikan ujian</p></div>
         </div>
-        <div class="form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+        <div class="form-grid-2">
           <div class="field"><label>Nama / Judul Ujian</label><input type="text" id="examTitle" placeholder="Contoh: UTS Matematika Kelas X"></div>
           <div class="field"><label>Mata Pelajaran</label>
             <select id="examMapel">
@@ -1835,18 +1862,18 @@ td strong { color:var(--text); font-weight:600; }
             </select>
           </div>
         </div>
-        <div class="form-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+        <div class="form-grid-3">
           <div class="field"><label>Durasi (menit)</label><input type="number" id="examDur" value="60" min="5" max="240"></div>
           <div class="field"><label>Maks. Peserta</label><input type="number" id="examMax" value="50" min="1"></div>
           <div class="field"><label>Acak Soal</label>
             <select id="examAcak"><option value="1">Ya, Acak</option><option value="0">Tidak</option></select>
           </div>
         </div>
-        <div class="form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+        <div class="form-grid-2">
           <div class="field"><label>Keamanan Anti-Contek</label>
             <select id="examSec">
-              <option value="3">Ketat (3x pelanggaran = auto submit)</option>
-              <option value="5">Sedang (5x pelanggaran = auto submit)</option>
+              <option value="3">Ketat (3x → auto submit)</option>
+              <option value="5">Sedang (5x → auto submit)</option>
               <option value="0">Nonaktif</option>
             </select>
           </div>
@@ -1861,8 +1888,8 @@ td strong { color:var(--text); font-weight:600; }
           </div>
         </div>
         <div id="soalPreviewArea" style="margin-bottom:1.25rem"></div>
-        <div style="display:flex;gap:.75rem;justify-content:flex-end">
-          <button class="btn btn-outline" onclick="switchPage('upload')">Upload Soal Sendiri</button>
+        <div class="buat-actions">
+          <button class="btn btn-outline" onclick="switchPage('upload')">📤 Upload Soal Sendiri</button>
           <button class="btn btn-green" onclick="createExam()">🚀 Publikasikan Ujian</button>
         </div>
       </div>
