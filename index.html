@@ -46,7 +46,7 @@
    LIGHT MODE
 ════════════════════════════════ */
 /* Applied via inline script di <head> sebelum paint — cegah FOUC */
-html.pre-light body, body.light {
+html.pre-light body, body.screen-login.light {
   --bg: #f0f4f8;
   --surface: #ffffff;
   --card: #ffffff;
@@ -70,8 +70,8 @@ html.pre-light body, body.light {
   --text3: #94a3b8;
 }
 
-/* Smooth transition saat toggle */
-body { transition: background-color .25s, color .25s; }
+/* Smooth transition saat toggle — hanya di login */
+body.screen-login { transition: background-color .25s, color .25s; }
 /* Batasi transisi hanya pada elemen UI utama, bukan semua element (menghindari FOUC & lag) */
 body .btn, body input, body select, body textarea,
 body .card, body .stat-box, body .table-wrap,
@@ -87,27 +87,27 @@ body .perm-status, body .perm-request-card {
 }
 
 /* Light mode overrides */
-body.light select option { background: #ffffff; color: #0f172a; }
-body.light ::-webkit-scrollbar-track { background: #e8eef5; }
-body.light ::-webkit-scrollbar-thumb { background: #b8c9da; }
-body.light .login-form,
-body.light .role-card { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
-body.light .brand h1 {
+body.screen-login.light select option { background: #ffffff; color: #0f172a; }
+body.screen-login.light ::-webkit-scrollbar-track { background: #e8eef5; }
+body.screen-login.light ::-webkit-scrollbar-thumb { background: #b8c9da; }
+body.screen-login.light .login-form,
+body.screen-login.light .role-card { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+body.screen-login.light .brand h1 {
   background: linear-gradient(135deg, #0f172a, #0284c7);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-body.light .exam-topbar { background: #ffffff; border-bottom-color: var(--border); }
-body.light .q-panel { background: var(--bg); }
-body.light .q-sidebar { background: var(--card); }
-body.light .nav-row { background: var(--bg); }
-body.light .btn-danger:hover { background: rgba(220,38,38,.15); }
-body.light .sec-overlay { background: rgba(240,244,248,.97); }
-body.light .suspended-overlay { background: rgba(240,244,248,.97); }
-body.light .modal-bg { background: rgba(15,23,42,.5); }
-body.light .exam-code { color: var(--accent); }
-body.light .score-num-big { color: inherit; }
+body.screen-login.light .exam-topbar { background: #ffffff; border-bottom-color: var(--border); }
+body.screen-login.light .q-panel { background: var(--bg); }
+body.screen-login.light .q-sidebar { background: var(--card); }
+body.screen-login.light .nav-row { background: var(--bg); }
+body.screen-login.light .btn-danger:hover { background: rgba(220,38,38,.15); }
+body.screen-login.light .sec-overlay { background: rgba(240,244,248,.97); }
+body.screen-login.light .suspended-overlay { background: rgba(240,244,248,.97); }
+body.screen-login.light .modal-bg { background: rgba(15,23,42,.5); }
+body.screen-login.light .exam-code { color: var(--accent); }
+body.screen-login.light .score-num-big { color: inherit; }
 
 
 /* Theme toggle — login screen floating */
@@ -5194,12 +5194,16 @@ async function startCamera() {
     video.setAttribute('playsinline', true);
     video.setAttribute('muted', true);
 
-    // Tunggu metadata & coba play
-    await new Promise((resolve, reject) => {
-      const onMeta = () => { video.removeEventListener('loadedmetadata', onMeta); resolve(); };
-      video.addEventListener('loadedmetadata', onMeta);
-      video.play().catch(reject);
-      // Timeout fallback
+    // Set muted via JS property (setAttribute saja tidak cukup di beberapa browser)
+    video.muted = true;
+
+    // Tunggu metadata — jangan reject kalau play() gagal (sering di mobile)
+    await new Promise((resolve) => {
+      const done = () => { video.removeEventListener('loadedmetadata', done); resolve(); };
+      video.addEventListener('loadedmetadata', done);
+      // Coba play, tapi abaikan error — video bisa tetap jalan via autoplay attribute
+      video.play().catch(() => {});
+      // Fallback timeout
       setTimeout(resolve, 3000);
     });
 
@@ -5228,15 +5232,22 @@ function _waitAndTick(video) {
     tickQR();
     return;
   }
-  // Coba lagi setelah 100ms (maks 50x = 5 detik)
+  // Coba lagi (maks 100x ≈ 5 detik dengan rAF ~50fps) — pakai rAF agar bisa di-cancel stopCamera
   qrScanAttempts++;
-  if (qrScanAttempts > 50) {
+  if (qrScanAttempts > 100) {
     const errMsg = document.getElementById('qrErrorMsg');
     errMsg.textContent = 'Kamera lambat merespons. Tutup dan coba lagi.';
     errMsg.classList.add('show');
     return;
   }
-  setTimeout(() => _waitAndTick(video), 100);
+  // Skip ~3 frame per check (~60ms) untuk efisiensi
+  let skip = 3;
+  const wait = () => {
+    if (!qrActive) return;
+    if (--skip > 0) { qrAnimFrame = requestAnimationFrame(wait); return; }
+    _waitAndTick(video);
+  };
+  qrAnimFrame = requestAnimationFrame(wait);
 }
 
 function stopCamera(setInactive = true) {
@@ -5359,7 +5370,10 @@ function toggleTheme() {
   const isNowLight = !document.body.classList.contains('light');
   localStorage.setItem('cbt_theme', isNowLight ? 'light' : 'dark');
   _applyTheme(isNowLight);
-  toast(isNowLight ? '☀️ Mode terang aktif' : '🌙 Mode gelap aktif', 'info');
+  // Toast hanya kalau sedang di login
+  if (document.body.classList.contains('screen-login')) {
+    toast(isNowLight ? '☀️ Mode terang aktif' : '🌙 Mode gelap aktif', 'info');
+  }
 }
 
 // Restore theme on load
