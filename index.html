@@ -2763,7 +2763,7 @@ global.jsQR = function(data, width, height, options) {
   <small style="color:var(--text3);font-size:.75rem">Ujian dilanjutkan otomatis...</small>
 </div>
 
-<div class="warning-counter" id="warnCounter">⚠ Pelanggaran: <span id="warnNum">0</span>/2</div>
+<div class="warning-counter" id="warnCounter">⚠ Pelanggaran: <span>0</span>/2</div>
 
 <!-- ══ CONFIRM MODAL ══ -->
 <div class="modal-bg" id="confirmModal">
@@ -4306,74 +4306,70 @@ async function refreshSesi() {
 
     // Real-time listener: results (submitted)
     const u1 = FSDb.listenResults(exam.code, (results) => {
-        const done = [...results].sort((a,b) => b.score - a.score);
-        const avgVal = done.length ? Math.round(done.reduce((s,r)=>s+r.score,0)/done.length) : null;
-        const selesaiEl = document.getElementById(`slSelesai-${exam.code}`);
-        const avgEl = document.getElementById(`slAvg-${exam.code}`);
-        if (selesaiEl) selesaiEl.textContent = done.length;
-        if (avgEl) avgEl.textContent = avgVal !== null ? avgVal : '—';
-        _updateSesiChart(exam.code, done, exam.questions.length);
-      });
-      sesiListeners.push(u1);
-
-      // Real-time listener: participants (joined)
-      const u2 = FSDb.listenParticipants(exam.code, (participants) => {
-        const loginEl = document.getElementById(`slLogin-${exam.code}`);
-        const pgEl = document.getElementById(`slParticipants-${exam.code}`);
-        if (loginEl) loginEl.textContent = participants.length;
-        if (!pgEl) return;
-        if (!participants.length) {
-          pgEl.innerHTML = '<span style="color:var(--text3);font-size:.78rem">Belum ada peserta login.</span>';
-          return;
-        }
-        const sorted = [...participants].sort((a,b) => {
-          if (a.status === 'selesai' && b.status !== 'selesai') return -1;
-          if (b.status === 'selesai' && a.status !== 'selesai') return 1;
-          return (b.score||0) - (a.score||0);
-        });
-        pgEl.innerHTML = sorted.map(p => {
-          const isDone = p.status === 'selesai';
-          const isSusp = p.status === 'suspended';
-          const scoreStr = isDone ? ` · <strong>${p.score}</strong>` : '';
-          const cls = isDone ? 'done' : isSusp ? '' : 'working';
-          const icon = isDone ? '✓' : isSusp ? '🚫' : '⏱';
-          return `<span class="p-chip ${cls}" style="${isSusp ? 'border-color:rgba(248,113,113,.4);color:var(--red);background:var(--red-dim)' : ''}">${icon} ${_escHtml(p.name)}${scoreStr}</span>`;
-        }).join('');
-      });
-      sesiListeners.push(u2);
-
-      // Real-time listener: permission requests
-      const u3 = FSDb.listenPermissionRequests([exam.code], (reqs) => {
-        const container = document.getElementById(`slPermReqs-${exam.code}`);
-        const listEl = document.getElementById(`slPermList-${exam.code}`);
-        const countEl = document.getElementById(`slPermCount-${exam.code}`);
-        if (!container || !listEl) return;
-
-        _allPermCounts[exam.code] = reqs.length;
-        const totalPending = Object.values(_allPermCounts).reduce((s,n)=>s+n,0);
-        _updatePermBadge(totalPending);
-
-        if (!reqs.length) {
-          container.style.display = 'none';
-          return;
-        }
-        container.style.display = 'block';
-        if (countEl) countEl.textContent = reqs.length;
-
-        listEl.innerHTML = reqs.map(req => `
-          <div class="perm-request-card">
-            <div class="perm-req-info">
-              <div class="perm-req-name">🙋 ${_escHtml(req.name)}</div>
-              <div class="perm-req-meta">NIS: ${_escHtml(req.nis)} · ⚠ ${req.violations} pelanggaran · ${_timeAgo(req.requestedAt)}</div>
-            </div>
-            <div class="perm-req-actions">
-              <button class="btn btn-green btn-xs" onclick="respondPerm('${exam.code}','${_escHtml(req.nis)}','approved')">✓ Izinkan</button>
-              <button class="btn btn-danger btn-xs" onclick="respondPerm('${exam.code}','${_escHtml(req.nis)}','denied')">✗ Tolak</button>
-            </div>
-          </div>`).join('');
-      });
-      sesiListeners.push(u3);
+      const done = [...results].sort((a,b) => b.score - a.score);
+      const avgVal = done.length ? Math.round(done.reduce((s,r)=>s+r.score,0)/done.length) : null;
+      const selesaiEl = document.getElementById(`slSelesai-${exam.code}`);
+      const avgEl = document.getElementById(`slAvg-${exam.code}`);
+      if (selesaiEl) selesaiEl.textContent = done.length;
+      if (avgEl) avgEl.textContent = avgVal !== null ? avgVal : '—';
+      _updateSesiChart(exam.code, done, exam.questions.length);
     });
+    sesiListeners.push(u1);
+
+    // Real-time listener: participants (joined)
+    const u2 = FSDb.listenParticipants(exam.code, (participants) => {
+      const loginEl = document.getElementById(`slLogin-${exam.code}`);
+      const pgEl = document.getElementById(`slParticipants-${exam.code}`);
+      if (loginEl) loginEl.textContent = participants.length;
+      if (!pgEl) return;
+      if (!participants.length) {
+        pgEl.innerHTML = '<span style="color:var(--text3);font-size:.78rem">Belum ada peserta login.</span>';
+        return;
+      }
+      const sorted = [...participants].sort((a,b) => {
+        if (a.status === 'selesai' && b.status !== 'selesai') return -1;
+        if (b.status === 'selesai' && a.status !== 'selesai') return 1;
+        return (b.score||0) - (a.score||0);
+      });
+      pgEl.innerHTML = sorted.map(p => {
+        const isDone = p.status === 'selesai';
+        const isSusp = p.status === 'suspended';
+        const scoreStr = isDone ? ` · <strong>${p.score}</strong>` : '';
+        const cls = isDone ? 'done' : isSusp ? '' : 'working';
+        const icon = isDone ? '✓' : isSusp ? '🚫' : '⏱';
+        return `<span class="p-chip ${cls}" style="${isSusp ? 'border-color:rgba(248,113,113,.4);color:var(--red);background:var(--red-dim)' : ''}">${icon} ${_escHtml(p.name)}${scoreStr}</span>`;
+      }).join('');
+    });
+    sesiListeners.push(u2);
+
+    // Real-time listener: permission requests
+    const u3 = FSDb.listenPermissionRequests([exam.code], (reqs) => {
+      const container = document.getElementById(`slPermReqs-${exam.code}`);
+      const listEl = document.getElementById(`slPermList-${exam.code}`);
+      const countEl = document.getElementById(`slPermCount-${exam.code}`);
+      if (!container || !listEl) return;
+
+      _allPermCounts[exam.code] = reqs.length;
+      const totalPending = Object.values(_allPermCounts).reduce((s,n)=>s+n,0);
+      _updatePermBadge(totalPending);
+
+      if (!reqs.length) { container.style.display = 'none'; return; }
+      container.style.display = 'block';
+      if (countEl) countEl.textContent = reqs.length;
+
+      listEl.innerHTML = reqs.map(req => `
+        <div class="perm-request-card">
+          <div class="perm-req-info">
+            <div class="perm-req-name">🙋 ${_escHtml(req.name)}</div>
+            <div class="perm-req-meta">NIS: ${_escHtml(req.nis)} · ⚠ ${req.violations} pelanggaran · ${_timeAgo(req.requestedAt)}</div>
+          </div>
+          <div class="perm-req-actions">
+            <button class="btn btn-green btn-xs" onclick="respondPerm('${exam.code}','${_escHtml(req.nis)}','approved')">✓ Izinkan</button>
+            <button class="btn btn-danger btn-xs" onclick="respondPerm('${exam.code}','${_escHtml(req.nis)}','denied')">✗ Tolak</button>
+          </div>
+        </div>`).join('');
+    });
+    sesiListeners.push(u3);
   });
 
   // Generate QR codes (visual only, delay ok)
@@ -5742,7 +5738,7 @@ document.body.classList.add('screen-login');
   if (!inner) return;
   let _lastTap = 0;
   function _handleBnav(e) {
-    const btn = e.target.closest('[data-nav],[id="bn-logout"]');
+    const btn = e.target.closest('[data-nav],[id="bn-logout-2"]');
     if (!btn) return;
     // Prevent ghost click (touchend + click dalam 350ms)
     const now = Date.now();
