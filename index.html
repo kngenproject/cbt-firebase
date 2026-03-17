@@ -45,7 +45,8 @@
 /* ════════════════════════════════
    LIGHT MODE
 ════════════════════════════════ */
-body.light {
+/* Applied via inline script di <head> sebelum paint — cegah FOUC */
+html.pre-light body, body.light {
   --bg: #f0f4f8;
   --surface: #ffffff;
   --card: #ffffff;
@@ -70,14 +71,20 @@ body.light {
 }
 
 /* Smooth transition saat toggle */
-body { transition: background .25s, color .25s; }
-body * { transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s; }
-/* Kecualikan animasi yg tidak perlu di-transition */
-body .live-pulse,
-body .qr-scan-line,
-body .sec-bar-fill,
-body .prog-fill,
-body .toast { transition: none !important; }
+body { transition: background-color .25s, color .25s; }
+/* Batasi transisi hanya pada elemen UI utama, bukan semua element (menghindari FOUC & lag) */
+body .btn, body input, body select, body textarea,
+body .card, body .stat-box, body .table-wrap,
+body .nav-item, body .tab, body .role-card, body .login-form,
+body .soal-item, body .rev-item, body .p-chip,
+body .modal-box, body .sesi-hasil-card, body .session-monitor-card,
+body .badge, body .opt, body .num-btn,
+body .dash-sidebar, body .dash-main, body .bottom-nav,
+body .exam-topbar, body .q-panel, body .q-sidebar,
+body .result-card, body .ans-summary, body .score-row,
+body .perm-status, body .perm-request-card {
+  transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s;
+}
 
 /* Light mode overrides */
 body.light select option { background: #ffffff; color: #0f172a; }
@@ -134,11 +141,14 @@ body.light .score-num-big { color: inherit; }
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   font-size: 1.1rem;
-  z-index: 100;
+  z-index: 400;
   transition: border-color .2s, transform .15s;
   box-shadow: 0 2px 8px rgba(0,0,0,.15);
 }
 .theme-toggle-float:hover { border-color: var(--accent); transform: scale(1.1); }
+/* Sembunyikan floating btn saat exam/result aktif — dikontrol via JS class pada body */
+body.screen-exam .theme-toggle-float,
+body.screen-result .theme-toggle-float { display: none !important; }
 
 /* bnav theme toggle item */
 .bnav-theme {
@@ -2225,6 +2235,14 @@ td strong { color:var(--text); font-weight:600; }
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script>
+// Apply theme ASAP sebelum render untuk cegah FOUC
+(function(){
+  const t = localStorage.getItem('cbt_theme');
+  const light = t ? t === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
+  if (light) document.documentElement.classList.add('pre-light');
+})();
+</script>
 </head>
 <body>
 
@@ -2711,6 +2729,13 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       <span>⏱</span>
       <div class="timer-val" id="timerVal">—:——</div>
     </div>
+    <button onclick="toggleTheme()" title="Ganti tema" style="
+      background:transparent;border:1.5px solid var(--border);border-radius:8px;
+      width:34px;height:34px;cursor:pointer;font-size:1rem;
+      display:flex;align-items:center;justify-content:center;
+      color:var(--text2);transition:border-color .2s;flex-shrink:0;
+    " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+    id="examThemeBtn">☀️</button>
   </div>
 
 
@@ -2751,6 +2776,10 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
         <div class="ans-summary">
           <span class="ans-big" id="ansBig">0</span>
           <span class="ans-lbl" id="ansLbl">dari 0 dijawab</span>
+        </div>
+        <div class="ans-summary" style="margin-top:.5rem">
+          <span class="ans-big" id="liveScore" style="color:var(--accent)">—</span>
+          <span class="ans-lbl" id="liveScoreSub">estimasi nilai</span>
         </div>
       </div>
     </div>
@@ -2796,6 +2825,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       </div>
       <div class="result-actions">
         <button class="btn btn-outline" style="flex:1" onclick="goToDashboard()">← Kembali</button>
+        <button class="btn btn-outline" onclick="toggleTheme()" id="resultThemeBtn" style="min-width:44px" title="Ganti tema">☀️</button>
       </div>
     </div>
   </div>
@@ -3055,6 +3085,9 @@ let isSubmitting = false; // untuk mencegah double submit
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // Update body class so CSS can react to current screen (e.g. hide floating btn on exam)
+  document.body.classList.remove('screen-login','screen-guru','screen-exam','screen-result');
+  document.body.classList.add('screen-' + id.replace('-screen',''));
 }
 
 function toast(msg, type='info') {
@@ -4000,21 +4033,21 @@ function _initSesiChart(examCode, totalSoal) {
             title: (i) => 'Rentang nilai: ' + i[0].label,
             label: (i) => `${i.raw} peserta`
           },
-          backgroundColor: '#131920',
-          borderColor: '#1e2d3d',
+          backgroundColor: () => getComputedStyle(document.body).getPropertyValue('--card').trim() || '#131920',
+          borderColor: () => getComputedStyle(document.body).getPropertyValue('--border').trim() || '#1e2d3d',
           borderWidth: 1,
-          titleColor: '#8899aa',
-          bodyColor: '#e1e8f0',
+          titleColor: () => getComputedStyle(document.body).getPropertyValue('--text2').trim() || '#8899aa',
+          bodyColor: () => getComputedStyle(document.body).getPropertyValue('--text').trim() || '#e1e8f0',
           padding: 10,
         }
       },
       scales: {
         x: {
           grid: { color: 'rgba(255,255,255,.05)' },
-          ticks: { color: '#4a6070', font: { size: 10, family: 'Space Mono' } }
+          ticks: { color: '#94a3b8', font: { size: 10, family: 'Space Mono' } }
         },
         y: {
-          beginAtZero: true, ticks: { stepSize: 1, color: '#4a6070', font: { size: 10 } },
+          beginAtZero: true, ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } },
           grid: { color: 'rgba(255,255,255,.05)' }
         }
       }
@@ -5080,11 +5113,35 @@ async function startCamera() {
   errMsg.textContent = '';
   qrScanAttempts = 0;
 
-  // Pastikan jsQR sudah loaded
+  // Tunggu jsQR loaded (maks 8 detik, cek tiap 200ms)
   if (typeof jsQR === 'undefined') {
-    errMsg.textContent = 'Library scanner belum siap, coba lagi.';
+    errMsg.textContent = '⏳ Memuat library scanner...';
     errMsg.classList.add('show');
-    return;
+    let waited = 0;
+    await new Promise((resolve, reject) => {
+      const poll = setInterval(() => {
+        waited += 200;
+        if (typeof jsQR !== 'undefined') { clearInterval(poll); resolve(); }
+        else if (waited >= 8000) { clearInterval(poll); reject(new Error('jsQR timeout')); }
+      }, 200);
+    }).catch(() => {
+      // Coba load ulang dari CDN
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }).catch(() => {
+      errMsg.textContent = '❌ Gagal memuat library scanner. Periksa koneksi internet.';
+      errMsg.classList.add('show');
+      qrActive = false;
+      return null;
+    });
+    if (typeof jsQR === 'undefined') return; // masih gagal setelah retry
+    errMsg.classList.remove('show');
+    errMsg.textContent = '';
   }
 
   // Pastikan navigator.mediaDevices tersedia (butuh HTTPS)
@@ -5157,10 +5214,8 @@ function _waitAndTick(video) {
 
 function stopCamera(setInactive = true) {
   if (setInactive) qrActive = false;
-  // cancelAnimationFrame atau clearTimeout (bisa salah satu tergantung tickQR path)
   if (qrAnimFrame) {
     cancelAnimationFrame(qrAnimFrame);
-    clearTimeout(qrAnimFrame);
     qrAnimFrame = null;
   }
   if (qrStream) {
@@ -5188,7 +5243,14 @@ function tickQR() {
   // Jika video paused (bisa terjadi di iOS/autoplay block), coba resume
   if (video.paused) {
     video.play().catch(() => {});
-    qrAnimFrame = setTimeout(() => { qrAnimFrame = null; tickQR(); }, 200);
+    // Gunakan rAF + delay counter agar stopCamera bisa cancel dengan benar
+    let _pauseDelay = 12; // ~200ms at 60fps
+    const _waitResume = () => {
+      if (!qrActive) return;
+      if (--_pauseDelay > 0) { qrAnimFrame = requestAnimationFrame(_waitResume); return; }
+      qrAnimFrame = requestAnimationFrame(tickQR);
+    };
+    qrAnimFrame = requestAnimationFrame(_waitResume);
     return;
   }
   if (video.readyState < 2) {
@@ -5260,6 +5322,10 @@ function _applyTheme(isLight) {
   const short = isLight ? 'Gelap' : 'Terang';
   const ids = ['sidebarThemeIcon','bnavThemeIcon','floatThemeIcon'];
   ids.forEach(id => { const el = document.getElementById(id); if(el) el.textContent = icon; });
+  // Update tombol theme di exam & result screen
+  ['examThemeBtn','resultThemeBtn'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = icon;
+  });
   const lblSide = document.getElementById('sidebarThemeLabel');
   if (lblSide) lblSide.textContent = label;
   const lblBnav = document.getElementById('bnavThemeLabel');
@@ -5281,6 +5347,8 @@ function toggleTheme() {
   const saved = localStorage.getItem('cbt_theme');
   const preferLight = saved ? saved === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
   _applyTheme(preferLight);
+  // Bersihkan class sementara dari <html>
+  document.documentElement.classList.remove('pre-light');
 })();
 
 APP.uploadedSoal = DB.get('uploadedSoal', []);
