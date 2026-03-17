@@ -5910,20 +5910,23 @@ APP.results = DB.get('results', []);
   // ── 4. Register Service Worker ──
   if (!('serviceWorker' in navigator)) return;
 
-  // PAGE_URL dipass masuk ke SW via template literal agar SW tahu URL yang harus di-cache
-  const SW_PAGE = PAGE_URL;
-  const CACHE_V = 'cbt-pro-v3';
+  // Cache version = timestamp file ini disimpan — berubah setiap deploy baru
+  // Memastikan SW baru SELALU hapus cache lama agar versi selalu up-to-date
+  const SW_PAGE    = PAGE_URL;
+  const CACHE_TS   = '1773791516';
+  const PAGE_ORIGIN_SW = new URL(PAGE_URL).origin;
 
   const swCode = `
-const CACHE  = '${CACHE_V}';
-const TO_CACHE = ['${SW_PAGE}'];
+const CACHE       = 'cbt-1773791516';
+const PAGE_URL_SW = '${SW_PAGE}';
+const PAGE_ORIGIN = '${PAGE_ORIGIN_SW}';
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(TO_CACHE))
-      .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting())   // Jangan gagal install jika cache error
+      .then(c => c.add(new Request(PAGE_URL_SW, {cache:'reload'})))
+      .catch(()=>{})
+      .then(()=> self.skipWaiting())
   );
 });
 
@@ -5931,35 +5934,33 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+      .then(()=> self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-
-  // Skip: Firebase, CDN, blob, data, chrome-extension
-  if (url.protocol === 'blob:' || url.protocol === 'data:' || url.protocol === 'chrome-extension:') return;
-  const ext = ['firebaseio.com','googleapis.com','gstatic.com','cdnjs.cloudflare.com','fonts.googleapis.com'];
-  if (ext.some(h => url.hostname.endsWith(h))) return;
-
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+  const skipHosts = ['firebaseio.com','googleapis.com','gstatic.com',
+                     'cdnjs.cloudflare.com','fonts.googleapis.com','fonts.gstatic.com'];
+  if (skipHosts.some(h => url.hostname.endsWith(h))) return;
+  const isPage = url.href === PAGE_URL_SW || url.pathname === new URL(PAGE_URL_SW).pathname;
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        // Cache hanya respons sukses same-origin
-        if (res && res.status === 200 && url.origin === self.location.origin) {
+        if (res && res.status === 200 && url.origin === PAGE_ORIGIN)
           caches.open(CACHE).then(c => c.put(e.request, res.clone())).catch(()=>{});
-        }
         return res;
       })
-      .catch(() =>
-        caches.match(e.request)
-          .then(cached => cached || new Response(
-            '<!DOCTYPE html><html><head><meta charset=UTF-8><meta name=viewport content="width=device-width"><title>CBT Pro — Offline</title><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#080c10;color:#e1e8f0;text-align:center;padding:2rem}</style></head><body><div><div style="font-size:3rem">📶</div><h2 style="margin:.75rem 0 .5rem">CBT Pro Offline</h2><p style="color:#8899aa">Tidak ada koneksi internet.<br>Buka kembali saat sudah online.</p></div></body></html>',
-            { headers: { 'Content-Type': 'text/html;charset=utf-8' } }
-          ))
-      )
+      .catch(() => caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        if (isPage) return new Response(
+          '<html><head><meta charset=UTF-8><title>CBT Pro Offline</title><style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#080c10;color:#e1e8f0;text-align:center;padding:2rem}</style></head><body><div style="font-size:3rem">&#x1F4F6;</div><h2>CBT Pro Offline</h2><p style="color:#8899aa">Buka kembali saat ada koneksi.</p></body></html>',
+          {headers:{'Content-Type':'text/html;charset=utf-8'}}
+        );
+        return new Response('Offline', {status:503});
+      }))
   );
 });
 `;
@@ -5978,10 +5979,17 @@ self.addEventListener('fetch', e => {
         if (!nw) return;
         nw.addEventListener('statechange', () => {
           if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            toast('Update tersedia — muat ulang untuk versi terbaru.', 'info');
+            toast('Versi baru tersedia! Memuat ulang...', 'info');
+            setTimeout(() => window.location.reload(), 1500);
           }
         });
       });
+      // Auto-reload saat controller berganti (skipWaiting aktif)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!_swFirstActivation) window.location.reload();
+        _swFirstActivation = false;
+      });
+      let _swFirstActivation = true;
     })
     .catch(err => console.warn('[PWA] SW register failed:', err.message));
 
