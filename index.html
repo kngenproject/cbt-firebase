@@ -7,6 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" id="pwa-manifest">
+<meta name="application-name" content="CBT Pro">
+<meta name="apple-mobile-web-app-title" content="CBT Pro">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23080c10'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-size='110' font-family='serif'%3E◈%3C/text%3E%3C/svg%3E">
 <title>CBT Pro — Sistem Ujian Online</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
@@ -36,6 +40,111 @@
   --r2: 14px;
   --r3: 18px;
 }
+
+
+/* ════════════════════════════════
+   LIGHT MODE
+════════════════════════════════ */
+body.light {
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card2: #e8eef5;
+  --border: #d1dce8;
+  --border2: #b8c9da;
+  --accent: #0284c7;
+  --accent-dim: rgba(2,132,199,0.10);
+  --green: #16a34a;
+  --green-dim: rgba(22,163,74,0.10);
+  --orange: #ea580c;
+  --orange-dim: rgba(234,88,12,0.10);
+  --red: #dc2626;
+  --red-dim: rgba(220,38,38,0.10);
+  --yellow: #d97706;
+  --yellow-dim: rgba(217,119,6,0.10);
+  --purple: #7c3aed;
+  --purple-dim: rgba(124,58,237,0.10);
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #94a3b8;
+}
+
+/* Smooth transition saat toggle */
+body { transition: background .25s, color .25s; }
+body * { transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s; }
+/* Kecualikan animasi yg tidak perlu di-transition */
+body .live-pulse,
+body .qr-scan-line,
+body .sec-bar-fill,
+body .prog-fill,
+body .toast { transition: none !important; }
+
+/* Light mode overrides */
+body.light select option { background: #ffffff; color: #0f172a; }
+body.light ::-webkit-scrollbar-track { background: #e8eef5; }
+body.light ::-webkit-scrollbar-thumb { background: #b8c9da; }
+body.light .login-form,
+body.light .role-card { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+body.light .brand h1 {
+  background: linear-gradient(135deg, #0f172a, #0284c7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+body.light .exam-topbar { background: #ffffff; border-bottom-color: var(--border); }
+body.light .q-panel { background: var(--bg); }
+body.light .q-sidebar { background: var(--card); }
+body.light .nav-row { background: var(--bg); }
+body.light .btn-danger:hover { background: rgba(220,38,38,.15); }
+body.light .sec-overlay { background: rgba(240,244,248,.97); }
+body.light .suspended-overlay { background: rgba(240,244,248,.97); }
+body.light .modal-bg { background: rgba(15,23,42,.5); }
+body.light .exam-code { color: var(--accent); }
+body.light .score-num-big { color: inherit; }
+
+/* Theme toggle button — sidebar */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .65rem .75rem;
+  border-radius: var(--r);
+  cursor: pointer;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--text2);
+  transition: all .15s;
+  background: transparent;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  width: 100%;
+  text-align: left;
+}
+.theme-toggle-btn:hover { background: var(--surface); color: var(--text); }
+
+/* Theme toggle — login screen floating */
+.theme-toggle-float {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: 1rem;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  z-index: 100;
+  transition: border-color .2s, transform .15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.theme-toggle-float:hover { border-color: var(--accent); transform: scale(1.1); }
+
+/* bnav theme toggle item */
+.bnav-theme {
+  color: var(--text2);
+}
+.bnav-theme:active { background: rgba(255,255,255,.06); border-radius: 10px; }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
@@ -2179,6 +2288,9 @@ td strong { color:var(--text); font-weight:600; }
       ontouchstart="navTap('hasil')" onclick="navTap('hasil')">
       <span class="bnav-icon">📋</span>Nilai
     </button>
+    <button class="bnav-item bnav-theme" id="bnavThemeBtn" onclick="toggleTheme()">
+      <span class="bnav-icon" id="bnavThemeIcon">☀️</span><span id="bnavThemeLabel">Terang</span>
+    </button>
     <button class="bnav-item bnav-logout"
       ontouchstart="confirmLogout()" onclick="confirmLogout()">
       <span class="bnav-icon">⎋</span>Keluar
@@ -2278,6 +2390,7 @@ td strong { color:var(--text); font-weight:600; }
 <!-- ════════════════════════════════
      LOGIN / ROLE SELECT
 ════════════════════════════════ -->
+<button class="theme-toggle-float" id="floatThemeBtn" onclick="toggleTheme()" title="Ganti tema"><span id="floatThemeIcon">☀️</span></button>
 <div id="login-screen" class="screen active">
   <div class="brand">
     <div class="brand-logo">◈ CBT Pro System</div>
@@ -2382,6 +2495,7 @@ td strong { color:var(--text); font-weight:600; }
       </div>
       <div class="nav-item" data-page="hasil" onclick="switchPage('hasil')"><span class="nav-icon">📋</span> Hasil & Nilai</div>
       <div class="nav-spacer"></div>
+      <button class="theme-toggle-btn" id="sidebarThemeBtn" onclick="toggleTheme()"><span id="sidebarThemeIcon">☀️</span> <span id="sidebarThemeLabel">Mode Terang</span></button>
       <div class="nav-logout" onclick="confirmLogout()">⎋ Keluar</div>
     </nav>
 
@@ -4189,7 +4303,32 @@ function exportPDF(examCode) {
     <td>${r.correct}</td><td>${r.wrong}</td><td>${r.skip||0}</td><td>${r.duration}</td>
     <td>${r.violations>0?'⚠ '+r.violations:'✓'}</td></tr>`).join('')}
   </tbody></table>
-  <script>window.onload=()=>{window.print()}<\/script></body></html>`;
+  <script>window.onload=()=>{window.print()}<\/script>
+<!-- ══ PWA INSTALL BANNER ══ -->
+<div id="pwaInstallBanner" style="
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:var(--card);border-top:1px solid var(--border2);
+  padding:.875rem 1.25rem;padding-bottom:calc(.875rem + env(safe-area-inset-bottom,0px));
+  align-items:center;gap:.75rem;box-shadow:0 -4px 24px rgba(0,0,0,.4);
+  animation:screenIn .3s ease;
+">
+  <div style="font-size:2rem;flex-shrink:0">📲</div>
+  <div style="flex:1;min-width:0">
+    <div style="font-weight:700;font-size:.88rem">Install CBT Pro</div>
+    <div style="font-size:.74rem;color:var(--text2)">Tambahkan ke layar utama untuk akses cepat</div>
+  </div>
+  <button id="pwaInstallBtn" style="
+    background:var(--accent);color:#050c14;border:none;border-radius:var(--r);
+    padding:.55rem 1rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.8rem;
+    cursor:pointer;white-space:nowrap;flex-shrink:0;
+  ">Install</button>
+  <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwa_banner_dismissed','1')" style="
+    background:transparent;border:none;color:var(--text3);cursor:pointer;
+    font-size:1.1rem;padding:.25rem;flex-shrink:0;
+  ">✕</button>
+</div>
+
+</body></html>`;
 
   const w = window.open('','_blank');
   if (!w) { toast('Popup diblokir browser. Izinkan popup untuk export PDF.', 'error'); return; }
@@ -5109,9 +5248,170 @@ function onQRDetected(kode) {
 // INIT
 // ══════════════════════════════════════
 // Load any existing uploaded soal
+
+// ══════════════════════════════════════
+// THEME (LIGHT / DARK)
+// ══════════════════════════════════════
+function _applyTheme(isLight) {
+  document.body.classList.toggle('light', isLight);
+  // Update semua icon & label
+  const icon  = isLight ? '🌙' : '☀️';
+  const label = isLight ? 'Mode Gelap' : 'Mode Terang';
+  const short = isLight ? 'Gelap' : 'Terang';
+  const ids = ['sidebarThemeIcon','bnavThemeIcon','floatThemeIcon'];
+  ids.forEach(id => { const el = document.getElementById(id); if(el) el.textContent = icon; });
+  const lblSide = document.getElementById('sidebarThemeLabel');
+  if (lblSide) lblSide.textContent = label;
+  const lblBnav = document.getElementById('bnavThemeLabel');
+  if (lblBnav) lblBnav.textContent = short;
+  // Update theme-color meta
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', isLight ? '#f0f4f8' : '#080c10');
+}
+
+function toggleTheme() {
+  const isNowLight = !document.body.classList.contains('light');
+  localStorage.setItem('cbt_theme', isNowLight ? 'light' : 'dark');
+  _applyTheme(isNowLight);
+  toast(isNowLight ? '☀️ Mode terang aktif' : '🌙 Mode gelap aktif', 'info');
+}
+
+// Restore theme on load
+(function() {
+  const saved = localStorage.getItem('cbt_theme');
+  const preferLight = saved ? saved === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
+  _applyTheme(preferLight);
+})();
+
 APP.uploadedSoal = DB.get('uploadedSoal', []);
 APP.exams = DB.get('exams', []);
 APP.results = DB.get('results', []);
+
+// ══════════════════════════════════════
+// PWA — Manifest injection + SW + Install
+// ══════════════════════════════════════
+(function initPWA() {
+  // ── 1. Inject Web App Manifest as blob ──
+  const iconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#080c10"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-size="300" font-family="serif" fill="#38bdf8">◈</text></svg>`;
+  const iconURL = 'data:image/svg+xml,' + encodeURIComponent(iconSVG);
+  const manifest = {
+    name: 'CBT Pro — Sistem Ujian Online',
+    short_name: 'CBT Pro',
+    description: 'Platform Computer-Based Test untuk guru dan siswa',
+    start_url: window.location.pathname + window.location.search,
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#080c10',
+    theme_color: '#080c10',
+    icons: [
+      { src: iconURL, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: iconURL, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ],
+    categories: ['education', 'productivity']
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const mURL  = URL.createObjectURL(blob);
+  const mLink = document.getElementById('pwa-manifest');
+  if (mLink) mLink.href = mURL;
+
+  // ── 2. Register Service Worker (inline via blob) ──
+  if ('serviceWorker' in navigator) {
+    const CACHE = 'cbt-pro-v1';
+    const swCode = `
+const CACHE_NAME = '${CACHE}';
+const OFFLINE_URLS = [self.location.pathname + self.location.search];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(c => c.addAll(OFFLINE_URLS)).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    )).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  // Hanya handle GET, skip Firebase & CDN (butuh online)
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  const isExternal = url.hostname !== self.location.hostname;
+  if (isExternal) return; // biarkan browser handle CDN/Firebase
+
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        if (res && res.status === 200 && res.type !== 'opaque') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request).then(cached => cached || new Response(
+        '<h2 style="font-family:sans-serif;text-align:center;padding:3rem">CBT Pro offline — buka kembali saat ada koneksi.</h2>',
+        { headers: { 'Content-Type': 'text/html' } }
+      )))
+  );
+});
+`;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swURL  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swURL, { scope: '/' })
+      .then(reg => {
+        console.log('[PWA] SW registered, scope:', reg.scope);
+        // Cek update di background
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              toast('Update tersedia — muat ulang untuk versi terbaru.', 'info');
+            }
+          });
+        });
+      })
+      .catch(e => console.warn('[PWA] SW register failed:', e));
+  }
+
+  // ── 3. Install prompt ──
+  let _deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredPrompt = e;
+    // Jangan tampilkan kalau sudah pernah dismiss
+    if (localStorage.getItem('pwa_banner_dismissed')) return;
+    // Tampilkan banner setelah 3 detik
+    setTimeout(() => {
+      const banner = document.getElementById('pwaInstallBanner');
+      if (banner) banner.style.display = 'flex';
+    }, 3000);
+  });
+
+  const installBtn = document.getElementById('pwaInstallBtn');
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!_deferredPrompt) return;
+      _deferredPrompt.prompt();
+      const { outcome } = await _deferredPrompt.userChoice;
+      _deferredPrompt = null;
+      const banner = document.getElementById('pwaInstallBanner');
+      if (banner) banner.style.display = 'none';
+      if (outcome === 'accepted') toast('CBT Pro berhasil diinstall! 🎉', 'success');
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    _deferredPrompt = null;
+    const banner = document.getElementById('pwaInstallBanner');
+    if (banner) banner.style.display = 'none';
+    toast('CBT Pro berhasil diinstall di perangkat ini 🎉', 'success');
+  });
+})();
+
 </script>
 </body>
 </html>
