@@ -109,25 +109,6 @@ body.light .modal-bg { background: rgba(15,23,42,.5); }
 body.light .exam-code { color: var(--accent); }
 body.light .score-num-big { color: inherit; }
 
-/* Theme toggle button — sidebar */
-.theme-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .65rem .75rem;
-  border-radius: var(--r);
-  cursor: pointer;
-  font-size: .875rem;
-  font-weight: 500;
-  color: var(--text2);
-  transition: all .15s;
-  background: transparent;
-  border: none;
-  font-family: 'DM Sans', sans-serif;
-  width: 100%;
-  text-align: left;
-}
-.theme-toggle-btn:hover { background: var(--surface); color: var(--text); }
 
 /* Theme toggle — login screen floating */
 .theme-toggle-float {
@@ -146,15 +127,9 @@ body.light .score-num-big { color: inherit; }
   box-shadow: 0 2px 8px rgba(0,0,0,.15);
 }
 .theme-toggle-float:hover { border-color: var(--accent); transform: scale(1.1); }
-/* Sembunyikan floating btn saat exam/result aktif — dikontrol via JS class pada body */
-body.screen-exam .theme-toggle-float,
-body.screen-result .theme-toggle-float { display: none !important; }
+/* Floating theme btn hanya tampil di login screen */
+body:not(.screen-login) .theme-toggle-float { display: none !important; }
 
-/* bnav theme toggle item */
-.bnav-theme {
-  color: var(--text2);
-}
-.bnav-theme:active { background: rgba(255,255,255,.06); border-radius: 10px; }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
@@ -1272,7 +1247,7 @@ td strong { color:var(--text); font-weight:600; }
 .bottom-nav-inner {
   display: flex;
   align-items: stretch;
-  height: 60px;
+  height: 58px;
 }
 .bnav-item {
   flex: 1;
@@ -1280,21 +1255,21 @@ td strong { color:var(--text); font-weight:600; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: .5rem .25rem .45rem;
-  gap: .2rem;
+  padding: .4rem .15rem .4rem;
+  gap: .15rem;
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--text3);
   font-family: 'DM Sans', sans-serif;
-  font-size: .6rem;
+  font-size: .58rem;
   font-weight: 600;
   transition: color .15s, background .15s;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   position: relative;
   min-width: 0;
-  /* Hapus ::after yang menyebabkan overlap dan sulit diklik */
+  overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -1312,7 +1287,7 @@ td strong { color:var(--text); font-weight:600; }
 }
 .bnav-logout { color: var(--red) !important; opacity: .75; }
 .bnav-logout:active { background: rgba(239,68,68,.1); }
-.bnav-icon { font-size: 1.3rem; line-height: 1; display: block; }
+.bnav-icon { font-size: 1.2rem; line-height: 1; display: block; }
 
 /* Sembunyikan bottom nav di layar lebar */
 @media (min-width: 901px) {
@@ -1326,7 +1301,7 @@ td strong { color:var(--text); font-weight:600; }
   .stat-row { grid-template-columns:repeat(2,1fr); }
   .dash-layout { grid-template-columns:1fr; }
   .dash-sidebar { display:none; }
-  .dash-main { padding:1.25rem; }
+  .dash-main { padding:1rem; }
 
   /* 3-kolom selalu jadi 1 kolom saat sidebar hilang */
   .form-grid-3 { grid-template-columns: 1fr 1fr; }
@@ -1368,9 +1343,8 @@ td strong { color:var(--text); font-weight:600; }
   #exam-screen { height: 100dvh; overflow: hidden; }
 
   /* ── Bottom nav padding compensation ── */
-  .bottom-nav.show ~ * .dash-main,
   #guru-screen .dash-main {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1rem);
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px) + .875rem);
   }
   /* result-screen hanya diberi padding jika bottom-nav aktif (guru) */
   .bottom-nav.show ~ #result-screen {
@@ -1536,6 +1510,69 @@ td strong { color:var(--text); font-weight:600; }
 /* ════════════════════════════════
    RESPONSIVE — SMALL PHONES (≤ 390px)
 ════════════════════════════════ */
+/* ════════════════════════════════
+   RESPONSIVE — GURU MOBILE (≤ 600px)
+════════════════════════════════ */
+@media (max-width:600px) {
+  /* Stat row: 2 kolom kompak */
+  .stat-row { grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: 1.25rem; }
+  .stat-box { padding: .875rem .75rem; }
+  .stat-num { font-size: 1.4rem; }
+  .stat-label { font-size: .68rem; }
+  .stat-box::after { font-size: 1.4rem; }
+
+  /* Page header: tombol lebih kecil */
+  .page-header { margin-bottom: 1.25rem; gap: .6rem; }
+  .page-header h2 { font-size: 1.15rem; }
+  .page-header .btn { padding: .6rem 1rem; font-size: .8rem; }
+
+  /* Live monitor cards */
+  .session-monitor-head { padding: .75rem .875rem; }
+  .session-monitor-body { padding: .75rem .875rem; }
+  .live-stats-mini { gap: .4rem; margin-bottom: .75rem; }
+  .lsm-box { padding: .5rem .5rem; }
+  .lsm-num { font-size: 1.1rem; }
+  .lsm-lbl { font-size: .6rem; }
+  .participant-grid { max-height: 120px; }
+  .p-chip { font-size: .68rem; padding: .2rem .45rem; }
+
+  /* Table: kompak */
+  .table-head { padding: .75rem .875rem; }
+  .table-head h3 { font-size: .82rem; }
+  th { font-size: .65rem; padding: .6rem .75rem; }
+  td { font-size: .78rem; padding: .65rem .75rem; }
+  table { min-width: 440px; }
+
+  /* Hasil per sesi cards */
+  .shc-head { padding: .75rem .875rem; }
+  .shc-stats { grid-template-columns: repeat(2, 1fr); padding: .75rem .875rem; gap: .4rem; }
+  .shc-stat-num { font-size: 1rem; }
+  .shc-stat-lbl { font-size: .6rem; }
+  .shc-actions { padding: .6rem .875rem; gap: .35rem; }
+
+  /* Upload soal */
+  .upload-zone { padding: 1.25rem .875rem; }
+  .soal-item { padding: .75rem .875rem; gap: .75rem; }
+  .soal-q { font-size: .82rem; }
+
+  /* Tabs */
+  .tab { font-size: .75rem; padding: .5rem .6rem; min-height: 40px; }
+
+  /* Hasil summary strip */
+  .hasil-summary-strip { gap: .5rem; margin-bottom: 1rem; }
+  .hss-box { padding: .75rem .75rem; }
+  .hss-num { font-size: 1.25rem; }
+  .hss-lbl { font-size: .65rem; }
+
+  /* Swipe dots — lebih kecil */
+  .swipe-dot { width: 5px; height: 5px; }
+  .swipe-dot.active { width: 14px; }
+
+  /* Form fields */
+  .field { margin-bottom: .875rem; }
+  label { font-size: .68rem; }
+}
+
 @media (max-width:390px) {
   .brand h1 { font-size: 1.5rem; }
   .role-card { padding: 1rem .75rem; }
@@ -2306,10 +2343,7 @@ td strong { color:var(--text); font-weight:600; }
       ontouchstart="navTap('hasil')" onclick="navTap('hasil')">
       <span class="bnav-icon">📋</span>Nilai
     </button>
-    <button class="bnav-item bnav-theme" id="bnavThemeBtn" onclick="toggleTheme()">
-      <span class="bnav-icon" id="bnavThemeIcon">☀️</span><span id="bnavThemeLabel">Terang</span>
-    </button>
-    <button class="bnav-item bnav-logout"
+<button class="bnav-item bnav-logout"
       ontouchstart="confirmLogout()" onclick="confirmLogout()">
       <span class="bnav-icon">⎋</span>Keluar
     </button>
@@ -2513,8 +2547,7 @@ td strong { color:var(--text); font-weight:600; }
       </div>
       <div class="nav-item" data-page="hasil" onclick="switchPage('hasil')"><span class="nav-icon">📋</span> Hasil & Nilai</div>
       <div class="nav-spacer"></div>
-      <button class="theme-toggle-btn" id="sidebarThemeBtn" onclick="toggleTheme()"><span id="sidebarThemeIcon">☀️</span> <span id="sidebarThemeLabel">Mode Terang</span></button>
-      <div class="nav-logout" onclick="confirmLogout()">⎋ Keluar</div>
+<div class="nav-logout" onclick="confirmLogout()">⎋ Keluar</div>
     </nav>
 
     <!-- Main -->
@@ -2729,13 +2762,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       <span>⏱</span>
       <div class="timer-val" id="timerVal">—:——</div>
     </div>
-    <button onclick="toggleTheme()" title="Ganti tema" style="
-      background:transparent;border:1.5px solid var(--border);border-radius:8px;
-      width:34px;height:34px;cursor:pointer;font-size:1rem;
-      display:flex;align-items:center;justify-content:center;
-      color:var(--text2);transition:border-color .2s;flex-shrink:0;
-    " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
-    id="examThemeBtn">☀️</button>
+
   </div>
 
 
@@ -2825,7 +2852,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       </div>
       <div class="result-actions">
         <button class="btn btn-outline" style="flex:1" onclick="goToDashboard()">← Kembali</button>
-        <button class="btn btn-outline" onclick="toggleTheme()" id="resultThemeBtn" style="min-width:44px" title="Ganti tema">☀️</button>
+
       </div>
     </div>
   </div>
@@ -5320,16 +5347,9 @@ function _applyTheme(isLight) {
   const icon  = isLight ? '🌙' : '☀️';
   const label = isLight ? 'Mode Gelap' : 'Mode Terang';
   const short = isLight ? 'Gelap' : 'Terang';
-  const ids = ['sidebarThemeIcon','bnavThemeIcon','floatThemeIcon'];
-  ids.forEach(id => { const el = document.getElementById(id); if(el) el.textContent = icon; });
-  // Update tombol theme di exam & result screen
-  ['examThemeBtn','resultThemeBtn'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.textContent = icon;
-  });
-  const lblSide = document.getElementById('sidebarThemeLabel');
-  if (lblSide) lblSide.textContent = label;
-  const lblBnav = document.getElementById('bnavThemeLabel');
-  if (lblBnav) lblBnav.textContent = short;
+  // Hanya update floating button di login
+  const floatIcon = document.getElementById('floatThemeIcon');
+  if (floatIcon) floatIcon.textContent = icon;
   // Update theme-color meta
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', isLight ? '#f0f4f8' : '#080c10');
