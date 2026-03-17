@@ -3547,9 +3547,13 @@ function handleDrop(e) {
   e.preventDefault();
   document.getElementById('dropZone').classList.remove('drag');
   const file = e.dataTransfer.files[0];
-  if (file) processCSVFile(file);
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+    toast('File harus berformat CSV!', 'error'); return;
+  }
+  processCSVFile(file);
 }
-function handleCSV(e) { if (e.target.files[0]) processCSVFile(e.target.files[0]); }
+function handleCSV(e) { if (e.target.files[0]) { processCSVFile(e.target.files[0]); e.target.value = ''; } }
 
 // Parser CSV yang lebih robust (menangani quoted fields)
 function parseCSVLine(line) {
@@ -3847,7 +3851,7 @@ function _updatePermBadge(count) {
 function _timeAgo(ts) {
   if (!ts) return '';
   const sec = Math.floor((Date.now() - ts) / 1000);
-  if (sec < 60) return `${sec}d lalu`;
+  if (sec < 60) return `${sec}dtk lalu`;
   const min = Math.floor(sec / 60);
   return `${min}m lalu`;
 }
@@ -4127,9 +4131,10 @@ function exportCSV(examCode) {
     ? (APP.exams.find(e=>e.code===examCode)?.title || examCode)
     : 'Semua Ujian';
 
+  const _csv = v => String(v ?? '').replace(/"/g, '""');
   const header = 'No,Nama,NIS,Ujian,Kode,Nilai,Benar,Salah,Kosong,Durasi,Pelanggaran,Tanggal';
   const rows = data.sort((a,b)=>b.score-a.score).map((r,i) =>
-    `${i+1},"${r.name}","${r.nis}","${r.examTitle||''}","${r.examCode}",${r.score},${r.correct},${r.wrong},${r.skip||0},"${r.duration}",${r.violations},"${r.date||''}"`
+    `${i+1},"${_csv(r.name)}","${_csv(r.nis)}","${_csv(r.examTitle||'')}","${_csv(r.examCode)}",${r.score},${r.correct},${r.wrong},${r.skip||0},"${_csv(r.duration)}",${r.violations},"${_csv(r.date||'')}"`
   );
   const csv = [header, ...rows].join('\n');
   const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
@@ -4187,6 +4192,7 @@ function exportPDF(examCode) {
   <script>window.onload=()=>{window.print()}<\/script></body></html>`;
 
   const w = window.open('','_blank');
+  if (!w) { toast('Popup diblokir browser. Izinkan popup untuk export PDF.', 'error'); return; }
   w.document.write(html);
   w.document.close();
 }
@@ -4227,6 +4233,12 @@ async function joinExam() {
   // Check if already done (local + Firestore)
   const alreadyDone = DB.get('results',[]).find(r=>r.examCode===code && r.nis===nis);
   if (alreadyDone) { _restoreBtn(); toast('Kamu sudah mengikuti ujian ini!', 'error'); return; }
+  // Double-check via Firestore (in case local cache was cleared)
+  try {
+    const snap = await fdb.collection('results')
+      .where('examCode','==',code).where('nis','==',nis).limit(1).get();
+    if (!snap.empty) { _restoreBtn(); toast('Kamu sudah mengikuti ujian ini!', 'error'); return; }
+  } catch(e) { console.warn('FS duplicate check:', e); }
 
   APP.examCfg = { name, nis, code, exam };
   APP.role = 'siswa';
@@ -4924,9 +4936,21 @@ async function startCamera() {
   const video = document.getElementById('qrVideo');
   const errMsg = document.getElementById('qrErrorMsg');
 
+  // Reset error & attempts setiap kali startCamera dipanggil (termasuk dari "Coba Lagi")
+  errMsg.classList.remove('show');
+  errMsg.textContent = '';
+  qrScanAttempts = 0;
+
   // Pastikan jsQR sudah loaded
   if (typeof jsQR === 'undefined') {
     errMsg.textContent = 'Library scanner belum siap, coba lagi.';
+    errMsg.classList.add('show');
+    return;
+  }
+
+  // Pastikan navigator.mediaDevices tersedia (butuh HTTPS)
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    errMsg.textContent = 'Kamera tidak didukung. Pastikan halaman dibuka via HTTPS.';
     errMsg.classList.add('show');
     return;
   }
@@ -4994,14 +5018,21 @@ function _waitAndTick(video) {
 
 function stopCamera(setInactive = true) {
   if (setInactive) qrActive = false;
-  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+  // cancelAnimationFrame atau clearTimeout (bisa salah satu tergantung tickQR path)
+  if (qrAnimFrame) {
+    cancelAnimationFrame(qrAnimFrame);
+    clearTimeout(qrAnimFrame);
+    qrAnimFrame = null;
+  }
   if (qrStream) {
     qrStream.getTracks().forEach(t => t.stop());
     qrStream = null;
   }
-  if (setInactive) {
-    const video = document.getElementById('qrVideo');
-    if (video) { video.srcObject = null; video.load(); }
+  // Selalu clear srcObject agar stream lama tidak menggantung di memori
+  const video = document.getElementById('qrVideo');
+  if (video) {
+    video.srcObject = null;
+    if (setInactive) video.load();
   }
 }
 
@@ -5011,8 +5042,14 @@ function tickQR() {
   const canvas = document.getElementById('qrCanvas');
 
   // Cek apakah video masih aktif dan punya ukuran valid
-  if (!video || video.paused || video.ended || video.videoWidth === 0) {
+  if (!video || video.ended || video.videoWidth === 0) {
     qrAnimFrame = requestAnimationFrame(tickQR);
+    return;
+  }
+  // Jika video paused (bisa terjadi di iOS/autoplay block), coba resume
+  if (video.paused) {
+    video.play().catch(() => {});
+    qrAnimFrame = setTimeout(() => { qrAnimFrame = null; tickQR(); }, 200);
     return;
   }
   if (video.readyState < 2) {
