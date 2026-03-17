@@ -46,7 +46,7 @@
    LIGHT MODE
 ════════════════════════════════ */
 /* Applied via inline script di <head> sebelum paint — cegah FOUC */
-html.pre-light body, body.screen-login.light {
+body.light {
   --bg: #f0f4f8;
   --surface: #ffffff;
   --card: #ffffff;
@@ -70,8 +70,23 @@ html.pre-light body, body.screen-login.light {
   --text3: #94a3b8;
 }
 
-/* Smooth transition saat toggle — hanya di login */
-body.screen-login { transition: background-color .25s, color .25s; }
+
+/* ── Light mode — overrides for non-login screens ── */
+body.light .exam-topbar       { background: #ffffff; border-bottom-color: var(--border); }
+body.light .q-panel           { background: var(--bg); }
+body.light .q-sidebar         { background: var(--card); }
+body.light .nav-row           { background: var(--bg); }
+body.light .btn-danger:hover  { background: rgba(220,38,38,.15); }
+body.light .sec-overlay       { background: rgba(240,244,248,.97); }
+body.light .suspended-overlay { background: rgba(240,244,248,.97); }
+body.light .modal-bg          { background: rgba(15,23,42,.5); }
+body.light .exam-code         { color: var(--accent); }
+body.light .score-num-big     { color: inherit; }
+body.light ::-webkit-scrollbar-track { background: #e8eef5; }
+body.light ::-webkit-scrollbar-thumb { background: #b8c9da; }
+
+/* Smooth transition saat toggle */
+body { transition: background-color .25s, color .25s; }
 /* Batasi transisi hanya pada elemen UI utama, bukan semua element (menghindari FOUC & lag) */
 body .btn, body input, body select, body textarea,
 body .card, body .stat-box, body .table-wrap,
@@ -87,27 +102,15 @@ body .perm-status, body .perm-request-card {
 }
 
 /* Light mode overrides */
-body.screen-login.light select option { background: #ffffff; color: #0f172a; }
-body.screen-login.light ::-webkit-scrollbar-track { background: #e8eef5; }
-body.screen-login.light ::-webkit-scrollbar-thumb { background: #b8c9da; }
-body.screen-login.light .login-form,
-body.screen-login.light .role-card { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
-body.screen-login.light .brand h1 {
+body.light select option { background: #ffffff; color: #0f172a; }
+body.light .login-form,
+body.light .role-card { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+body.light .brand h1 {
   background: linear-gradient(135deg, #0f172a, #0284c7);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-body.screen-login.light .exam-topbar { background: #ffffff; border-bottom-color: var(--border); }
-body.screen-login.light .q-panel { background: var(--bg); }
-body.screen-login.light .q-sidebar { background: var(--card); }
-body.screen-login.light .nav-row { background: var(--bg); }
-body.screen-login.light .btn-danger:hover { background: rgba(220,38,38,.15); }
-body.screen-login.light .sec-overlay { background: rgba(240,244,248,.97); }
-body.screen-login.light .suspended-overlay { background: rgba(240,244,248,.97); }
-body.screen-login.light .modal-bg { background: rgba(15,23,42,.5); }
-body.screen-login.light .exam-code { color: var(--accent); }
-body.screen-login.light .score-num-big { color: inherit; }
 
 
 /* Theme toggle — login screen floating */
@@ -2272,14 +2275,6 @@ td strong { color:var(--text); font-weight:600; }
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script>
-// Apply theme ASAP sebelum render untuk cegah FOUC
-(function(){
-  const t = localStorage.getItem('cbt_theme');
-  const light = t ? t === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
-  if (light) document.documentElement.classList.add('pre-light');
-})();
-</script>
 </head>
 <body>
 
@@ -5109,20 +5104,14 @@ function _setPermStatus(type, text) {
 // ══════════════════════════════════════
 // QR CODE SCANNER (SISWA)
 // ══════════════════════════════════════
-let qrStream = null;
+let qrStream    = null;
 let qrAnimFrame = null;
-let qrActive = false;
-let qrScanAttempts = 0;
+let qrActive    = false;
 
 function openQRScan() {
-  const modal = document.getElementById('qrScanModal');
-  const detected = document.getElementById('qrDetected');
-  const errMsg = document.getElementById('qrErrorMsg');
-  detected.classList.remove('show');
-  errMsg.classList.remove('show');
-  errMsg.textContent = '';
-  qrScanAttempts = 0;
-  modal.classList.add('open');
+  document.getElementById('qrDetected').classList.remove('show');
+  _qrErr('');
+  document.getElementById('qrScanModal').classList.add('open');
   startCamera();
 }
 
@@ -5131,201 +5120,134 @@ function closeQRScan() {
   stopCamera();
 }
 
-async function startCamera() {
-  const video = document.getElementById('qrVideo');
-  const errMsg = document.getElementById('qrErrorMsg');
-
-  // Reset error & attempts setiap kali startCamera dipanggil (termasuk dari "Coba Lagi")
-  errMsg.classList.remove('show');
-  errMsg.textContent = '';
-  qrScanAttempts = 0;
-
-  // Tunggu jsQR loaded (maks 8 detik, cek tiap 200ms)
-  if (typeof jsQR === 'undefined') {
-    errMsg.textContent = '⏳ Memuat library scanner...';
-    errMsg.classList.add('show');
-    let waited = 0;
-    await new Promise((resolve, reject) => {
-      const poll = setInterval(() => {
-        waited += 200;
-        if (typeof jsQR !== 'undefined') { clearInterval(poll); resolve(); }
-        else if (waited >= 8000) { clearInterval(poll); reject(new Error('jsQR timeout')); }
-      }, 200);
-    }).catch(() => {
-      // Coba load ulang dari CDN
-      return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
-        s.onload = resolve;
-        s.onerror = reject;
-        document.head.appendChild(s);
-      });
-    }).catch(() => {
-      errMsg.textContent = '❌ Gagal memuat library scanner. Periksa koneksi internet.';
-      errMsg.classList.add('show');
-      qrActive = false;
-      return null;
-    });
-    if (typeof jsQR === 'undefined') return; // masih gagal setelah retry
-    errMsg.classList.remove('show');
-    errMsg.textContent = '';
-  }
-
-  // Pastikan navigator.mediaDevices tersedia (butuh HTTPS)
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    errMsg.textContent = 'Kamera tidak didukung. Pastikan halaman dibuka via HTTPS.';
-    errMsg.classList.add('show');
-    return;
-  }
-
-  qrActive = true;
-  stopCamera(false); // stop old stream tapi jangan set qrActive=false
-
-  try {
-    const constraints = {
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280, min: 320 },
-        height: { ideal: 720, min: 240 }
-      }
-    };
-    qrStream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = qrStream;
-    video.setAttribute('playsinline', true);
-    video.setAttribute('muted', true);
-
-    // Set muted via JS property (setAttribute saja tidak cukup di beberapa browser)
-    video.muted = true;
-
-    // Tunggu metadata — jangan reject kalau play() gagal (sering di mobile)
-    await new Promise((resolve) => {
-      const done = () => { video.removeEventListener('loadedmetadata', done); resolve(); };
-      video.addEventListener('loadedmetadata', done);
-      // Coba play, tapi abaikan error — video bisa tetap jalan via autoplay attribute
-      video.play().catch(() => {});
-      // Fallback timeout
-      setTimeout(resolve, 3000);
-    });
-
-    // Mulai tick setelah video aktif
-    _waitAndTick(video);
-
-  } catch(e) {
-    qrActive = false;
-    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-      errMsg.textContent = 'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser.';
-    } else if (e.name === 'NotFoundError') {
-      errMsg.textContent = 'Tidak ada kamera yang ditemukan di perangkat ini.';
-    } else if (e.name === 'NotReadableError') {
-      errMsg.textContent = 'Kamera sedang digunakan aplikasi lain.';
-    } else {
-      errMsg.textContent = 'Kamera tidak bisa diakses: ' + (e.message || e.name || 'Unknown error');
-    }
-    errMsg.classList.add('show');
-  }
+function _qrErr(msg) {
+  const el = document.getElementById('qrErrorMsg');
+  el.textContent = msg;
+  el.classList.toggle('show', !!msg);
 }
 
-function _waitAndTick(video) {
-  if (!qrActive) return;
-  // Jika video sudah punya dimensi, langsung tick
-  if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-    tickQR();
+async function startCamera() {
+  _qrErr('');
+
+  // ── 1. Pastikan jsQR tersedia (coba load ulang jika perlu) ──
+  if (typeof jsQR === 'undefined') {
+    _qrErr('⏳ Memuat library scanner...');
+    await new Promise(resolve => {
+      let done = false;
+      // Poll 200ms selama 6 detik
+      const t = setInterval(() => {
+        if (typeof jsQR !== 'undefined') { clearInterval(t); done = true; resolve(); }
+      }, 200);
+      setTimeout(() => { if (!done) { clearInterval(t); resolve(); } }, 6000);
+    });
+    if (typeof jsQR === 'undefined') {
+      // Satu kali retry: inject ulang script
+      await new Promise(resolve => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+        s.onload = resolve; s.onerror = resolve;
+        document.head.appendChild(s);
+      });
+    }
+    if (typeof jsQR === 'undefined') {
+      _qrErr('❌ Library scanner gagal dimuat. Periksa koneksi internet lalu tekan Coba Lagi.');
+      return;
+    }
+    _qrErr('');
+  }
+
+  // ── 2. Cek dukungan kamera ──
+  if (!navigator.mediaDevices?.getUserMedia) {
+    _qrErr('Kamera tidak didukung browser ini. Pastikan halaman dibuka via HTTPS.');
     return;
   }
-  // Coba lagi (maks 100x ≈ 5 detik dengan rAF ~50fps) — pakai rAF agar bisa di-cancel stopCamera
-  qrScanAttempts++;
-  if (qrScanAttempts > 100) {
-    const errMsg = document.getElementById('qrErrorMsg');
-    errMsg.textContent = 'Kamera lambat merespons. Tutup dan coba lagi.';
-    errMsg.classList.add('show');
+
+  // ── 3. Hentikan stream lama jika ada ──
+  stopCamera(false);
+  qrActive = true;
+
+  // ── 4. Ambil stream kamera ──
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+  } catch(e) {
+    qrActive = false;
+    const msg = {
+      NotAllowedError:      'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser.',
+      PermissionDeniedError:'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser.',
+      NotFoundError:        'Tidak ada kamera yang tersedia di perangkat ini.',
+      NotReadableError:     'Kamera sedang digunakan aplikasi lain.',
+      OverconstrainedError: 'Resolusi kamera tidak didukung, coba lagi.',
+    }[e.name] || ('Kamera error: ' + (e.message || e.name));
+    _qrErr(msg);
     return;
   }
-  // Skip ~3 frame per check (~60ms) untuk efisiensi
-  let skip = 3;
-  const wait = () => {
-    if (!qrActive) return;
-    if (--skip > 0) { qrAnimFrame = requestAnimationFrame(wait); return; }
-    _waitAndTick(video);
-  };
-  qrAnimFrame = requestAnimationFrame(wait);
+
+  // ── 5. Pasang stream ke video element ──
+  const video = document.getElementById('qrVideo');
+  video.srcObject = qrStream;
+  video.muted = true;
+  video.playsInline = true;
+
+  // ── 6. Tunggu video siap lalu mulai scan ──
+  // Gunakan 'canplay' bukan 'loadedmetadata' — lebih reliable di Android & iOS
+  await new Promise(resolve => {
+    // Kalau sudah siap (misal stream langsung tersedia), langsung resolve
+    if (video.readyState >= 3) { resolve(); return; }
+    const h = () => { video.removeEventListener('canplay', h); resolve(); };
+    video.addEventListener('canplay', h);
+    // Fallback: 4 detik, misal event tidak fire (beberapa browser lama)
+    setTimeout(resolve, 4000);
+  });
+
+  // Pastikan video playing
+  if (video.paused) {
+    try { await video.play(); } catch(_) {}
+  }
+
+  // ── 7. Mulai scan loop ──
+  if (qrActive) tickQR();
 }
 
 function stopCamera(setInactive = true) {
   if (setInactive) qrActive = false;
-  if (qrAnimFrame) {
-    cancelAnimationFrame(qrAnimFrame);
-    qrAnimFrame = null;
-  }
-  if (qrStream) {
-    qrStream.getTracks().forEach(t => t.stop());
-    qrStream = null;
-  }
-  // Selalu clear srcObject agar stream lama tidak menggantung di memori
+  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+  if (qrStream)    { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
   const video = document.getElementById('qrVideo');
-  if (video) {
-    video.srcObject = null;
-    if (setInactive) video.load();
-  }
+  if (video) { video.srcObject = null; if (setInactive) video.load(); }
 }
 
 function tickQR() {
   if (!qrActive) return;
-  const video = document.getElementById('qrVideo');
+  const video  = document.getElementById('qrVideo');
   const canvas = document.getElementById('qrCanvas');
 
-  // Cek apakah video masih aktif dan punya ukuran valid
-  if (!video || video.ended || video.videoWidth === 0) {
-    qrAnimFrame = requestAnimationFrame(tickQR);
-    return;
+  // Video belum siap — tunggu frame berikutnya
+  if (!video || video.readyState < 2 || video.videoWidth === 0 || video.ended) {
+    qrAnimFrame = requestAnimationFrame(tickQR); return;
   }
-  // Jika video paused (bisa terjadi di iOS/autoplay block), coba resume
+  // Video paused (iOS block) — coba resume
   if (video.paused) {
     video.play().catch(() => {});
-    // Gunakan rAF + delay counter agar stopCamera bisa cancel dengan benar
-    let _pauseDelay = 12; // ~200ms at 60fps
-    const _waitResume = () => {
-      if (!qrActive) return;
-      if (--_pauseDelay > 0) { qrAnimFrame = requestAnimationFrame(_waitResume); return; }
-      qrAnimFrame = requestAnimationFrame(tickQR);
-    };
-    qrAnimFrame = requestAnimationFrame(_waitResume);
-    return;
-  }
-  if (video.readyState < 2) {
-    qrAnimFrame = requestAnimationFrame(tickQR);
-    return;
+    qrAnimFrame = requestAnimationFrame(tickQR); return;
   }
 
   try {
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
+    const vw = video.videoWidth, vh = video.videoHeight;
     const size = Math.min(vw, vh);
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const ox = (vw - size) / 2;
-    const oy = (vh - size) / 2;
-    ctx.drawImage(video, ox, oy, size, size, 0, 0, size, size);
-    const imgData = ctx.getImageData(0, 0, size, size);
-
-    // Coba decode QR dengan dua mode inversi untuk coverage lebih baik
-    const code = jsQR(imgData.data, imgData.width, imgData.height, {
-      inversionAttempts: 'attemptBoth'
-    });
-
-    if (code && code.data && code.data.trim()) {
-      const raw = code.data.trim().toUpperCase();
-      // Ekstrak kode: bisa berupa kode langsung atau URL yang mengandung kode
+    ctx.drawImage(video, (vw - size) / 2, (vh - size) / 2, size, size, 0, 0, size, size);
+    const img  = ctx.getImageData(0, 0, size, size);
+    const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+    if (code?.data?.trim()) {
+      const raw   = code.data.trim().toUpperCase();
       const match = raw.match(/([A-Z0-9]{4,10})(?:[^A-Z0-9]|$)/);
-      const kode = match ? match[1] : raw.replace(/[^A-Z0-9]/g, '').substring(0, 10);
-      if (kode && kode.length >= 4) {
-        onQRDetected(kode);
-        return;
-      }
+      const kode  = match ? match[1] : raw.replace(/[^A-Z0-9]/g, '').substring(0, 10);
+      if (kode && kode.length >= 4) { onQRDetected(kode); return; }
     }
-  } catch(e) {
-    // Ignore decode errors, keep scanning
-  }
+  } catch(_) { /* abaikan error decode */ }
 
   qrAnimFrame = requestAnimationFrame(tickQR);
 }
@@ -5334,14 +5256,9 @@ function onQRDetected(kode) {
   stopCamera();
   document.getElementById('qrDetectedCode').textContent = kode;
   document.getElementById('qrDetected').classList.add('show');
-  // Auto-fill ke input siswa
   const input = document.getElementById('siswaCode');
   if (input) input.value = kode;
-  // Tutup modal setelah sebentar
-  setTimeout(() => {
-    closeQRScan();
-    toast('Kode ujian terisi: ' + kode, 'success');
-  }, 900);
+  setTimeout(() => { closeQRScan(); toast('✅ Kode ujian terisi: ' + kode, 'success'); }, 900);
 }
 
 // ══════════════════════════════════════
@@ -5370,10 +5287,7 @@ function toggleTheme() {
   const isNowLight = !document.body.classList.contains('light');
   localStorage.setItem('cbt_theme', isNowLight ? 'light' : 'dark');
   _applyTheme(isNowLight);
-  // Toast hanya kalau sedang di login
-  if (document.body.classList.contains('screen-login')) {
-    toast(isNowLight ? '☀️ Mode terang aktif' : '🌙 Mode gelap aktif', 'info');
-  }
+  toast(isNowLight ? '☀️ Mode terang aktif' : '🌙 Mode gelap aktif', 'info');
 }
 
 // Restore theme on load
@@ -5381,8 +5295,7 @@ function toggleTheme() {
   const saved = localStorage.getItem('cbt_theme');
   const preferLight = saved ? saved === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
   _applyTheme(preferLight);
-  // Bersihkan class sementara dari <html>
-  document.documentElement.classList.remove('pre-light');
+
 })();
 
 APP.uploadedSoal = DB.get('uploadedSoal', []);
