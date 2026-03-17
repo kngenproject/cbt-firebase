@@ -10,7 +10,7 @@
 <link rel="manifest" id="pwa-manifest">
 <meta name="application-name" content="CBT Pro">
 <meta name="apple-mobile-web-app-title" content="CBT Pro">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23080c10'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-size='110' font-family='serif'%3E◈%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" id="ati-icon" href="">
 <title>CBT Pro — Sistem Ujian Online</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
@@ -5291,9 +5291,54 @@ APP.results = DB.get('results', []);
 // PWA — Manifest injection + SW + Install
 // ══════════════════════════════════════
 (function initPWA() {
-  // ── 1. Inject Web App Manifest as blob ──
-  const iconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#080c10"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-size="300" font-family="serif" fill="#38bdf8">◈</text></svg>`;
-  const iconURL = 'data:image/svg+xml,' + encodeURIComponent(iconSVG);
+  // ── 1. Generate PNG icons via Canvas (bukan SVG/blob — agar browser tampilkan icon yg benar di home screen) ──
+  function _makeIconPNG(size, radius) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const r = radius || size * 0.195;
+    // Rounded rect background
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(size - r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size - r);
+    ctx.quadraticCurveTo(size, size, size - r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#080c10';
+    ctx.fill();
+    // Inner glow circle
+    const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size * 0.45);
+    grad.addColorStop(0, 'rgba(56,189,248,0.18)');
+    grad.addColorStop(1, 'rgba(56,189,248,0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // "◈" symbol
+    ctx.font = `bold ${size * 0.52}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText('◈', size / 2, size * 0.525);
+    // "CBT" text bawah
+    ctx.font = `bold ${size * 0.115}px 'DM Sans',sans-serif`;
+    ctx.fillStyle = 'rgba(56,189,248,0.7)';
+    ctx.fillText('CBT PRO', size / 2, size * 0.845);
+    return c.toDataURL('image/png');
+  }
+
+  const icon192 = _makeIconPNG(192);
+  const icon512 = _makeIconPNG(512);
+
+  // Update apple-touch-icon di <head> supaya iOS juga pakai icon yang benar
+  let ati = document.querySelector('link[rel="apple-touch-icon"]');
+  if (!ati) { ati = document.createElement('link'); ati.rel = 'apple-touch-icon'; document.head.appendChild(ati); }
+  ati.href = icon192;
+
+  // Inject manifest
   const manifest = {
     name: 'CBT Pro — Sistem Ujian Online',
     short_name: 'CBT Pro',
@@ -5304,8 +5349,10 @@ APP.results = DB.get('results', []);
     background_color: '#080c10',
     theme_color: '#080c10',
     icons: [
-      { src: iconURL, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-      { src: iconURL, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ],
     categories: ['education', 'productivity']
   };
