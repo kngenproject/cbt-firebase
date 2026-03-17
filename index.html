@@ -1251,7 +1251,7 @@ td strong { color:var(--text); font-weight:600; }
 .bottom-nav-inner {
   display: flex;
   align-items: stretch;
-  height: 58px;
+  height: 56px;
 }
 .bnav-item {
   flex: 1;
@@ -1259,25 +1259,26 @@ td strong { color:var(--text); font-weight:600; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: .35rem .1rem;
-  gap: .15rem;
+  padding: .3rem .05rem;
+  gap: .1rem;
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--text3);
   font-family: 'DM Sans', sans-serif;
-  font-size: .58rem;
+  font-size: .55rem;
   font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
   transition: color .15s, background .15s;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   position: relative;
   min-width: 0;
-  /* overflow: visible agar area tap tidak terpotong */
-  overflow: visible;
   user-select: none;
   -webkit-user-select: none;
-  /* Perluas area tap ke seluruh tinggi bottom-nav-inner */
   align-self: stretch;
 }
 /* Hapus ::after pseudo-element yang overlap */
@@ -1356,7 +1357,7 @@ td strong { color:var(--text); font-weight:600; }
     height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px) + .875rem);
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + .875rem);
   }
   /* tab-pane di dalam dash-main harus tampil dan bisa di-scroll */
   #guru-screen .tab-pane { display: none; }
@@ -2732,13 +2733,13 @@ global.jsQR = function(data, width, height, options) {
 <div class="bottom-nav" id="bottomNav">
   <div class="bottom-nav-inner" id="bnavInner">
     <button class="bnav-item active" id="bn-overview" data-nav="overview">
-      <span class="bnav-icon">📊</span>Dashboard
+      <span class="bnav-icon">📊</span>Home
     </button>
     <button class="bnav-item" id="bn-buat" data-nav="buat">
       <span class="bnav-icon">✏️</span>Buat
     </button>
     <button class="bnav-item" id="bn-upload" data-nav="upload">
-      <span class="bnav-icon">📤</span>Upload
+      <span class="bnav-icon">📤</span>Soal
     </button>
     <button class="bnav-item" id="bn-sesi" data-nav="sesi">
       <span class="bnav-icon">📡</span>Sesi
@@ -2747,7 +2748,7 @@ global.jsQR = function(data, width, height, options) {
     <button class="bnav-item" id="bn-hasil" data-nav="hasil">
       <span class="bnav-icon">📋</span>Nilai
     </button>
-    <button class="bnav-item bnav-logout" id="bn-logout">
+    <button class="bnav-item bnav-logout" data-action="logout">
       <span class="bnav-icon">⎋</span>Keluar
     </button>
   </div>
@@ -5738,14 +5739,14 @@ document.body.classList.add('screen-login');
   if (!inner) return;
   let _lastTap = 0;
   function _handleBnav(e) {
-    const btn = e.target.closest('[data-nav],[id="bn-logout-2"]');
+    const btn = e.target.closest('[data-nav],[data-action]');
     if (!btn) return;
     // Prevent ghost click (touchend + click dalam 350ms)
     const now = Date.now();
     if (e.type === 'touchend') { _lastTap = now; }
     else if (e.type === 'click' && now - _lastTap < 350) { e.preventDefault(); return; }
     e.preventDefault();
-    if (btn.id === 'bn-logout') { confirmLogout(); return; }
+    if (btn.dataset.action === 'logout') { confirmLogout(); return; }
     const page = btn.dataset.nav;
     if (page) switchPage(page);
   }
