@@ -1243,6 +1243,8 @@ td strong { color:var(--text); font-weight:600; }
   transform: translateY(100%);
   transition: transform .25s cubic-bezier(.22,1,.36,1);
   pointer-events: none;
+  /* Isolasi agar touch events dari luar tidak bocor ke nav */
+  touch-action: none;
 }
 .bottom-nav.show {
   transform: translateY(0);
@@ -1251,7 +1253,7 @@ td strong { color:var(--text); font-weight:600; }
 .bottom-nav-inner {
   display: flex;
   align-items: stretch;
-  height: 56px;
+  height: 60px;
 }
 .bnav-item {
   flex: 1;
@@ -1259,43 +1261,46 @@ td strong { color:var(--text); font-weight:600; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: .3rem .05rem;
-  gap: .1rem;
+  /* Padding vertikal besar agar hitbox penuh */
+  padding: 0 .25rem;
+  gap: .15rem;
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--text3);
   font-family: 'DM Sans', sans-serif;
-  font-size: .55rem;
+  font-size: .6rem;
   font-weight: 600;
-  line-height: 1.1;
+  line-height: 1.2;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: clip;
-  transition: color .15s, background .15s;
+  transition: color .12s, background .12s;
+  /* Hapus highlight bawaan & 300ms delay */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   position: relative;
   min-width: 0;
   user-select: none;
   -webkit-user-select: none;
+  /* Stretch ke penuh tinggi inner agar area tap = area visual */
   align-self: stretch;
+  /* Overflow visible agar badge tidak terpotong */
+  overflow: visible;
 }
-/* Hapus ::after pseudo-element yang overlap */
 .bnav-item::after { display: none; }
-.bnav-item:active { background: rgba(255,255,255,.06); border-radius: 10px; }
+.bnav-item:active { background: rgba(255,255,255,.08); border-radius: 8px; }
 .bnav-item.active { color: var(--accent); }
 .bnav-item.active::before {
   content: '';
   position: absolute;
-  top: 0; left: 20%; right: 20%;
-  height: 2.5px;
+  top: 0; left: 15%; right: 15%;
+  height: 2px;
   background: var(--accent);
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 3px 3px;
 }
-.bnav-logout { color: var(--red) !important; opacity: .75; }
-.bnav-logout:active { background: rgba(239,68,68,.1); }
-.bnav-icon { font-size: 1.2rem; line-height: 1; display: block; }
+.bnav-logout { color: var(--red) !important; opacity: .8; }
+.bnav-logout:active { background: rgba(239,68,68,.12); }
+.bnav-icon { font-size: 1.25rem; line-height: 1; display: block; pointer-events: none; }
+.bnav-item > span:not(.bnav-icon):not(.perm-badge) { pointer-events: none; }
 
 /* Sembunyikan bottom nav di layar lebar */
 @media (min-width: 901px) {
@@ -1357,14 +1362,14 @@ td strong { color:var(--text); font-weight:600; }
     height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + .875rem);
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 1rem);
   }
   /* tab-pane di dalam dash-main harus tampil dan bisa di-scroll */
   #guru-screen .tab-pane { display: none; }
   #guru-screen .tab-pane.active { display: block; animation: screenIn .2s ease; }
   /* result-screen hanya diberi padding jika bottom-nav aktif (guru) */
   .bottom-nav.show ~ #result-screen {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1rem);
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 1rem);
   }
   /* ── exam-screen: dikontrol via .active di base CSS ── */
 
@@ -5733,25 +5738,82 @@ function toggleTheme() {
 // Set initial screen body class (login-screen is active by default in HTML)
 document.body.classList.add('screen-login');
 
-// ── Bottom nav: pakai event delegation (lebih reliable di semua browser mobile) ──
+// ── Bottom nav: event handling yang benar untuk Android ──
+// Strategi: pointer events (modern) + touch fallback, dengan drag detection
 (function() {
-  const inner = document.getElementById('bnavInner');
-  if (!inner) return;
-  let _lastTap = 0;
-  function _handleBnav(e) {
-    const btn = e.target.closest('[data-nav],[data-action]');
+  const nav = document.getElementById('bottomNav');
+  if (!nav) return;
+
+  // State tracking per touch/pointer
+  let _startX = 0, _startY = 0, _moved = false, _active = false;
+  const DRAG_THRESHOLD = 8; // px — lebih dari ini = scroll bukan tap
+
+  function _exec(btn) {
     if (!btn) return;
-    // Prevent ghost click (touchend + click dalam 350ms)
-    const now = Date.now();
-    if (e.type === 'touchend') { _lastTap = now; }
-    else if (e.type === 'click' && now - _lastTap < 350) { e.preventDefault(); return; }
-    e.preventDefault();
     if (btn.dataset.action === 'logout') { confirmLogout(); return; }
     const page = btn.dataset.nav;
     if (page) switchPage(page);
   }
-  inner.addEventListener('touchend', _handleBnav, { passive: false });
-  inner.addEventListener('click',    _handleBnav, { passive: false });
+
+  // ── Pointer Events (Chrome Android 55+, Samsung 6+, Firefox 59+) ──
+  if (window.PointerEvent) {
+    nav.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+      _startX = e.clientX; _startY = e.clientY;
+      _moved = false; _active = true;
+    }, { passive: true });
+
+    nav.addEventListener('pointermove', e => {
+      if (!_active) return;
+      if (Math.abs(e.clientX - _startX) > DRAG_THRESHOLD ||
+          Math.abs(e.clientY - _startY) > DRAG_THRESHOLD) {
+        _moved = true;
+      }
+    }, { passive: true });
+
+    nav.addEventListener('pointerup', e => {
+      if (!_active) return;
+      _active = false;
+      if (_moved) return; // Ini scroll, bukan tap
+      const btn = e.target.closest('[data-nav],[data-action]');
+      _exec(btn);
+    }, { passive: true });
+
+    nav.addEventListener('pointercancel', () => { _active = false; _moved = false; }, { passive: true });
+
+  } else {
+    // ── Touch Events fallback (browser lama) ──
+    let _lastClick = 0;
+
+    nav.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      _startX = t.clientX; _startY = t.clientY;
+      _moved = false; _active = true;
+    }, { passive: true });
+
+    nav.addEventListener('touchmove', e => {
+      if (!_active) return;
+      const t = e.touches[0];
+      if (Math.abs(t.clientX - _startX) > DRAG_THRESHOLD ||
+          Math.abs(t.clientY - _startY) > DRAG_THRESHOLD) {
+        _moved = true;
+      }
+    }, { passive: true });
+
+    nav.addEventListener('touchend', e => {
+      if (!_active) return;
+      _active = false;
+      if (_moved) return;
+      _lastClick = Date.now();
+      const btn = e.target.closest('[data-nav],[data-action]');
+      if (btn) { e.preventDefault(); _exec(btn); }
+    }, { passive: false });
+
+    // Supres ghost click setelah touchend
+    nav.addEventListener('click', e => {
+      if (Date.now() - _lastClick < 500) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+  }
 })();
 
 APP.uploadedSoal = DB.get('uploadedSoal', []);
