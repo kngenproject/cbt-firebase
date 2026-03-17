@@ -313,6 +313,7 @@ input, select, textarea {
   transition: border-color .2s, box-shadow .2s;
   -webkit-appearance:none;
   text-overflow: ellipsis;
+  touch-action: manipulation;
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
@@ -1307,9 +1308,9 @@ td strong { color:var(--text); font-weight:600; }
   .stat-row { grid-template-columns:repeat(2,1fr); }
   .dash-layout { grid-template-columns:1fr; }
   .dash-sidebar { display:none; }
-  .dash-main { padding:1rem; }
+  .dash-main { padding:1.25rem; }
 
-  /* 3-kolom selalu jadi 1 kolom saat sidebar hilang */
+  /* 3-kolom → 2, 2-kolom tetap (cukup lebar di tablet) */
   .form-grid-3 { grid-template-columns: 1fr 1fr; }
 
   /* Tombol aksi Buat — wrap di tablet */
@@ -1348,10 +1349,18 @@ td strong { color:var(--text); font-weight:600; }
   /* exam-screen dikelola via #exam-screen.active flex-chain — jangan dioverride */
   #exam-screen { height: 100dvh; overflow: hidden; }
 
-  /* ── Bottom nav padding compensation ── */
+  /* ── Guru screen: dash-main harus scrollable dan tab-pane visible ── */
+  #guru-screen { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+  #guru-screen .dash-layout { flex: 1; min-height: 0; overflow: hidden; }
   #guru-screen .dash-main {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px) + .875rem);
   }
+  /* tab-pane di dalam dash-main harus tampil dan bisa di-scroll */
+  #guru-screen .tab-pane { display: none; }
+  #guru-screen .tab-pane.active { display: block; animation: screenIn .2s ease; }
   /* result-screen hanya diberi padding jika bottom-nav aktif (guru) */
   .bottom-nav.show ~ #result-screen {
     padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1rem);
@@ -1577,6 +1586,25 @@ td strong { color:var(--text); font-weight:600; }
   /* Form fields */
   .field { margin-bottom: .875rem; }
   label { font-size: .68rem; }
+
+  /* Buat Ujian: batasi preview soal agar tombol tidak terpotong */
+  #soalPreviewArea { max-height: 45vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .soal-list { max-height: none; }
+
+  /* form-grid-2 → 1 kolom di HP */
+  .form-grid-2 { grid-template-columns: 1fr; gap: 0; }
+  .form-grid-opt { grid-template-columns: 1fr 1fr; }
+
+  /* Tombol Publikasikan selalu terlihat */
+  .buat-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    padding: .75rem 0 calc(.75rem + env(safe-area-inset-bottom, 0px));
+    margin: 0;
+    border-top: 1px solid var(--border);
+    z-index: 10;
+  }
 }
 
 @media (max-width:390px) {
@@ -2702,30 +2730,24 @@ global.jsQR = function(data, width, height, options) {
 
 <!-- ══ BOTTOM NAV (mobile guru dashboard) ══ -->
 <div class="bottom-nav" id="bottomNav">
-  <div class="bottom-nav-inner">
-    <button class="bnav-item active" id="bn-overview"
-      onclick="navTap('overview')">
+  <div class="bottom-nav-inner" id="bnavInner">
+    <button class="bnav-item active" id="bn-overview" data-nav="overview">
       <span class="bnav-icon">📊</span>Dashboard
     </button>
-    <button class="bnav-item" id="bn-buat"
-      onclick="navTap('buat')">
+    <button class="bnav-item" id="bn-buat" data-nav="buat">
       <span class="bnav-icon">✏️</span>Buat
     </button>
-    <button class="bnav-item" id="bn-upload"
-      onclick="navTap('upload')">
+    <button class="bnav-item" id="bn-upload" data-nav="upload">
       <span class="bnav-icon">📤</span>Upload
     </button>
-    <button class="bnav-item" id="bn-sesi"
-      onclick="navTap('sesi')">
+    <button class="bnav-item" id="bn-sesi" data-nav="sesi">
       <span class="bnav-icon">📡</span>Sesi
       <span class="perm-badge" id="permBadgeBnav">0</span>
     </button>
-    <button class="bnav-item" id="bn-hasil"
-      onclick="navTap('hasil')">
+    <button class="bnav-item" id="bn-hasil" data-nav="hasil">
       <span class="bnav-icon">📋</span>Nilai
     </button>
-<button class="bnav-item bnav-logout"
-      onclick="confirmLogout()">
+    <button class="bnav-item bnav-logout" id="bn-logout">
       <span class="bnav-icon">⎋</span>Keluar
     </button>
   </div>
@@ -3651,14 +3673,8 @@ async function logout() { confirmLogout(); }
 // ══════════════════════════════════════
 // ── halaman dan urutan untuk swipe ──
 const PAGES = ['overview','buat','upload','sesi','hasil'];
-let _lastNavTap = 0; // deduplicate touchstart + click
-
-function navTap(p) {
-  const now = Date.now();
-  if (now - _lastNavTap < 100) return; // prevent double-tap only
-  _lastNavTap = now;
-  switchPage(p);
-}
+// navTap: dipakai sidebar desktop
+function navTap(p) { switchPage(p); }
 
 function setBnav(p) {
   document.querySelectorAll('.bnav-item').forEach(el => el.classList.remove('active'));
@@ -4283,25 +4299,13 @@ async function refreshSesi() {
   // Track all pending counts across sessions for badge
   let _allPermCounts = {};
 
-  // Generate QR codes
-  setTimeout(() => {
-    aktif.forEach((exam, idx) => {
-      try {
-        const qrEl = document.getElementById(`sesiQR-${idx}`);
-        if (qrEl && !qrEl.hasChildNodes()) {
-          new QRCode(qrEl, {
-            text: exam.code, width: 120, height: 120,
-            colorDark: '#080c10', colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.H
-          });
-        }
-      } catch(e) {}
+  // Register real-time listeners IMMEDIATELY (not inside setTimeout to avoid leak)
+  aktif.forEach((exam, idx) => {
+    // Init chart with placeholder
+    _initSesiChart(exam.code, exam.questions.length);
 
-      // Init chart with placeholder
-      _initSesiChart(exam.code, exam.questions.length);
-
-      // Real-time listener: results (submitted)
-      const u1 = FSDb.listenResults(exam.code, (results) => {
+    // Real-time listener: results (submitted)
+    const u1 = FSDb.listenResults(exam.code, (results) => {
         const done = [...results].sort((a,b) => b.score - a.score);
         const avgVal = done.length ? Math.round(done.reduce((s,r)=>s+r.score,0)/done.length) : null;
         const selesaiEl = document.getElementById(`slSelesai-${exam.code}`);
@@ -4369,6 +4373,22 @@ async function refreshSesi() {
           </div>`).join('');
       });
       sesiListeners.push(u3);
+    });
+  });
+
+  // Generate QR codes (visual only, delay ok)
+  setTimeout(() => {
+    aktif.forEach((exam, idx) => {
+      try {
+        const qrEl = document.getElementById(`sesiQR-${idx}`);
+        if (qrEl && !qrEl.hasChildNodes()) {
+          new QRCode(qrEl, {
+            text: exam.code, width: 120, height: 120,
+            colorDark: '#080c10', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        }
+      } catch(e) {}
     });
   }, 80);
 }
@@ -5126,6 +5146,11 @@ function goToDashboard() {
   } else {
     APP.role = null;
     APP.examCfg = null;
+    APP.questions = [];
+    APP.answers  = [];
+    APP.flags    = [];
+    APP.current  = 0;
+    APP.reviewMode = false;
     document.getElementById("bottomNav").classList.remove("show");
     showScreen('login-screen');
     backToRole();
@@ -5317,6 +5342,7 @@ function blockKeys(e) {
 }
 
 function handleVisibility() {
+  if (!APP.secActive) return;
   if (!document.getElementById('exam-screen').classList.contains('active')) return;
   if (document.hidden) triggerViolation('Kamu berpindah tab! Tindakan ini dicatat.');
 }
@@ -5523,9 +5549,23 @@ function _qrErr(msg) {
 async function startCamera() {
   _qrErr('');
 
-  // ── 1. Cek dukungan kamera ──
+  // ── 1. Polyfill getUserMedia untuk browser lama ──
+  // Firefox < 36, UC Browser, Samsung Internet lama pakai prefix
+  if (!navigator.mediaDevices) navigator.mediaDevices = {};
+  if (!navigator.mediaDevices.getUserMedia) {
+    const legacy = navigator.getUserMedia ||
+                   navigator.webkitGetUserMedia ||
+                   navigator.mozGetUserMedia ||
+                   navigator.msGetUserMedia;
+    if (legacy) {
+      navigator.mediaDevices.getUserMedia = (c) => new Promise((res, rej) => legacy.call(navigator, c, res, rej));
+    }
+  }
+
+  // ── 2. Cek dukungan kamera ──
   if (!navigator.mediaDevices?.getUserMedia) {
-    _qrErr('Kamera tidak didukung browser ini. Pastikan halaman dibuka via HTTPS.');
+    _qrErr('Browser ini tidak mendukung akses kamera. ' +
+      'Gunakan Chrome, Firefox, atau Samsung Internet versi terbaru, dan pastikan halaman dibuka via HTTPS.');
     return;
   }
 
@@ -5533,20 +5573,40 @@ async function startCamera() {
   stopCamera(false);
   qrActive = true;
 
-  // ── 4. Ambil stream kamera ──
-  try {
-    qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-  } catch(e) {
+  // ── 4. Ambil stream kamera — coba beberapa constraint fallback ──
+  // Beberapa browser lama tidak support ideal/advanced constraints
+  const constraints = [
+    // Ideal: kamera belakang, resolusi tinggi
+    { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+    // Fallback 1: kamera belakang saja
+    { video: { facingMode: 'environment' } },
+    // Fallback 2: kamera apapun
+    { video: true },
+  ];
+
+  let lastErr = null;
+  for (const c of constraints) {
+    try {
+      qrStream = await navigator.mediaDevices.getUserMedia(c);
+      lastErr = null;
+      break;
+    } catch(e) {
+      lastErr = e;
+      // Jika bukan masalah constraint, langsung hentikan
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError' ||
+          e.name === 'NotFoundError' || e.name === 'NotReadableError') break;
+    }
+  }
+
+  if (lastErr || !qrStream) {
     qrActive = false;
     const msg = {
-      NotAllowedError:      'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser.',
-      PermissionDeniedError:'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser.',
-      NotFoundError:        'Tidak ada kamera yang tersedia di perangkat ini.',
-      NotReadableError:     'Kamera sedang digunakan aplikasi lain.',
-      OverconstrainedError: 'Resolusi kamera tidak didukung, coba lagi.',
-    }[e.name] || ('Kamera error: ' + (e.message || e.name));
+      NotAllowedError:      'Izin kamera ditolak. Buka Pengaturan browser → izinkan akses kamera untuk situs ini.',
+      PermissionDeniedError:'Izin kamera ditolak. Buka Pengaturan browser → izinkan akses kamera untuk situs ini.',
+      NotFoundError:        'Tidak ada kamera di perangkat ini.',
+      NotReadableError:     'Kamera sedang dipakai aplikasi lain. Tutup app kamera lain lalu coba lagi.',
+      OverconstrainedError: 'Kamera tidak kompatibel. Coba lagi.',
+    }[(lastErr||{}).name] || ('Kamera tidak bisa diakses (' + ((lastErr||{}).name || 'unknown') + '). Coba ganti browser atau cek izin kamera.');
     _qrErr(msg);
     return;
   }
@@ -5556,19 +5616,27 @@ async function startCamera() {
   video.srcObject = qrStream;
   video.muted = true;
   video.playsInline = true;
+  // Atribut HTML untuk browser yang butuh attribute bukan property
+  video.setAttribute('playsinline', '');
+  video.setAttribute('muted', '');
+  video.setAttribute('autoplay', '');
 
-  // ── 6. Tunggu video siap lalu mulai scan ──
-  // Gunakan 'canplay' bukan 'loadedmetadata' — lebih reliable di Android & iOS
+  // ── 6. Tunggu video siap — gunakan beberapa event untuk kompatibilitas ──
   await new Promise(resolve => {
-    // Kalau sudah siap (misal stream langsung tersedia), langsung resolve
     if (video.readyState >= 3) { resolve(); return; }
-    const h = () => { video.removeEventListener('canplay', h); resolve(); };
-    video.addEventListener('canplay', h);
-    // Fallback: 4 detik, misal event tidak fire (beberapa browser lama)
-    setTimeout(resolve, 4000);
+    const done = () => {
+      video.removeEventListener('canplay', done);
+      video.removeEventListener('loadeddata', done);
+      video.removeEventListener('loadedmetadata', done);
+      resolve();
+    };
+    video.addEventListener('canplay', done);
+    video.addEventListener('loadeddata', done);        // Firefox lebih cepat fire ini
+    video.addEventListener('loadedmetadata', done);    // Fallback
+    setTimeout(resolve, 5000);                         // Hard timeout
   });
 
-  // Pastikan video playing
+  // Pastikan video playing (beberapa browser butuh dipanggil eksplisit)
   if (video.paused) {
     try { await video.play(); } catch(_) {}
   }
@@ -5667,6 +5735,27 @@ function toggleTheme() {
 
 // Set initial screen body class (login-screen is active by default in HTML)
 document.body.classList.add('screen-login');
+
+// ── Bottom nav: pakai event delegation (lebih reliable di semua browser mobile) ──
+(function() {
+  const inner = document.getElementById('bnavInner');
+  if (!inner) return;
+  let _lastTap = 0;
+  function _handleBnav(e) {
+    const btn = e.target.closest('[data-nav],[id="bn-logout"]');
+    if (!btn) return;
+    // Prevent ghost click (touchend + click dalam 350ms)
+    const now = Date.now();
+    if (e.type === 'touchend') { _lastTap = now; }
+    else if (e.type === 'click' && now - _lastTap < 350) { e.preventDefault(); return; }
+    e.preventDefault();
+    if (btn.id === 'bn-logout') { confirmLogout(); return; }
+    const page = btn.dataset.nav;
+    if (page) switchPage(page);
+  }
+  inner.addEventListener('touchend', _handleBnav, { passive: false });
+  inner.addEventListener('click',    _handleBnav, { passive: false });
+})();
 
 APP.uploadedSoal = DB.get('uploadedSoal', []);
 APP.exams = DB.get('exams', []);
