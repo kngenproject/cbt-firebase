@@ -10,7 +10,7 @@
 <link rel="manifest" id="pwa-manifest">
 <meta name="application-name" content="CBT Pro">
 <meta name="apple-mobile-web-app-title" content="CBT Pro">
-<link rel="apple-touch-icon" id="ati-icon" href="">
+<link rel="apple-touch-icon" id="ati-icon" sizes="192x192" href="">
 <title>CBT Pro — Sistem Ujian Online</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
@@ -4767,7 +4767,7 @@ function exportPDF(examCode) {
     padding:.55rem 1rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.8rem;
     cursor:pointer;white-space:nowrap;flex-shrink:0;
   ">Install</button>
-  <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwa_banner_dismissed','1')" style="
+  <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwa_dismissed','1')" style="
     background:transparent;border:none;color:var(--text3);cursor:pointer;
     font-size:1.1rem;padding:.25rem;flex-shrink:0;
   ">✕</button>
@@ -5676,171 +5676,203 @@ APP.results = DB.get('results', []);
 // PWA — Manifest injection + SW + Install
 // ══════════════════════════════════════
 (function initPWA() {
-  // ── 1. Generate PNG icons via Canvas (bukan SVG/blob — agar browser tampilkan icon yg benar di home screen) ──
-  function _makeIconPNG(size, radius) {
-    const c = document.createElement('canvas');
-    c.width = c.height = size;
-    const ctx = c.getContext('2d');
-    const r = radius || size * 0.195;
-    // Rounded rect background
-    ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.lineTo(size - r, 0);
-    ctx.quadraticCurveTo(size, 0, size, r);
-    ctx.lineTo(size, size - r);
-    ctx.quadraticCurveTo(size, size, size - r, size);
-    ctx.lineTo(r, size);
-    ctx.quadraticCurveTo(0, size, 0, size - r);
-    ctx.lineTo(0, r);
-    ctx.quadraticCurveTo(0, 0, r, 0);
-    ctx.closePath();
-    ctx.fillStyle = '#080c10';
-    ctx.fill();
-    // Inner glow circle
-    const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size * 0.45);
-    grad.addColorStop(0, 'rgba(56,189,248,0.18)');
-    grad.addColorStop(1, 'rgba(56,189,248,0)');
-    ctx.fillStyle = grad;
-    ctx.fill();
-    // "◈" symbol
-    ctx.font = `bold ${size * 0.52}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillText('◈', size / 2, size * 0.525);
-    // "CBT" text bawah
-    ctx.font = `bold ${size * 0.115}px 'DM Sans',sans-serif`;
-    ctx.fillStyle = 'rgba(56,189,248,0.7)';
-    ctx.fillText('CBT PRO', size / 2, size * 0.845);
-    return c.toDataURL('image/png');
+  // ══════════════════════════════════════
+  // 1. Generate icons via canvas (PNG base64)
+  //    Hanya buat icon 192x192 untuk manifest (lebih ringan)
+  //    512x512 dibuat terpisah hanya untuk apple-touch-icon
+  // ══════════════════════════════════════
+  function _makeIcon(size) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      const r = size * 0.2;
+      // Background rounded rect
+      ctx.beginPath();
+      ctx.moveTo(r, 0); ctx.lineTo(size-r, 0);
+      ctx.arcTo(size,0, size,r, r);
+      ctx.lineTo(size, size-r);
+      ctx.arcTo(size,size, size-r,size, r);
+      ctx.lineTo(r, size);
+      ctx.arcTo(0,size, 0,size-r, r);
+      ctx.lineTo(0, r);
+      ctx.arcTo(0,0, r,0, r);
+      ctx.closePath();
+      ctx.fillStyle = '#080c10'; ctx.fill();
+      // Glow
+      const g = ctx.createRadialGradient(size*.5,size*.4,0, size*.5,size*.5,size*.5);
+      g.addColorStop(0,'rgba(56,189,248,.25)'); g.addColorStop(1,'rgba(56,189,248,0)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,size,size);
+      // Symbol
+      ctx.font = `bold ${size*.5}px serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('◈', size*.5, size*.5);
+      return c.toDataURL('image/png');
+    } catch(e) { return ''; }
   }
 
-  const icon192 = _makeIconPNG(192);
-  const icon512 = _makeIconPNG(512);
+  const icon192 = _makeIcon(192);
 
-  // Update apple-touch-icon di <head> supaya iOS juga pakai icon yang benar
-  let ati = document.querySelector('link[rel="apple-touch-icon"]');
-  if (!ati) { ati = document.createElement('link'); ati.rel = 'apple-touch-icon'; document.head.appendChild(ati); }
-  ati.href = icon192;
+  // ── 2. Update apple-touch-icon (iOS "Add to Home Screen") ──
+  const atiLink = document.getElementById('ati-icon') || document.querySelector('link[rel="apple-touch-icon"]');
+  if (atiLink && icon192) atiLink.href = icon192;
 
-  // Inject manifest
+  // ── 3. Buat & inject Web App Manifest ──
+  //    Manifest harus di-set SEBELUM browser selesai parsing agar Chrome
+  //    bisa evaluate installability. Kita set href manifest di sini (di dalam
+  //    script body, setelah DOMContentLoaded sudah lewat tapi manifest link
+  //    masih bisa di-update dan Chrome akan re-fetch).
+  const PAGE_URL = window.location.href.split('?')[0].split('#')[0];
   const manifest = {
     name: 'CBT Pro — Sistem Ujian Online',
     short_name: 'CBT Pro',
-    description: 'Platform Computer-Based Test untuk guru dan siswa',
-    start_url: window.location.pathname + window.location.search,
+    description: 'Platform CBT untuk guru & siswa sekolah',
+    start_url: PAGE_URL,
+    scope: PAGE_URL.substring(0, PAGE_URL.lastIndexOf('/') + 1) || '/',
     display: 'standalone',
+    display_override: ['standalone', 'minimal-ui', 'browser'],
     orientation: 'any',
     background_color: '#080c10',
     theme_color: '#080c10',
-    icons: [
+    lang: 'id',
+    icons: icon192 ? [
       { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
-    ],
-    categories: ['education', 'productivity']
+      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable' }
+    ] : [],
+    categories: ['education', 'productivity'],
+    screenshots: []
   };
-  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-  const mURL  = URL.createObjectURL(blob);
-  const mLink = document.getElementById('pwa-manifest');
-  if (mLink) mLink.href = mURL;
 
-  // ── 2. Register Service Worker (inline via blob) ──
-  if ('serviceWorker' in navigator) {
-    const CACHE = 'cbt-pro-v1';
-    const swCode = `
-const CACHE_NAME = '${CACHE}';
-const OFFLINE_URLS = [self.location.pathname + self.location.search];
+  try {
+    const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const mURL  = URL.createObjectURL(mBlob);
+    // Set di link yang sudah ada
+    const mLink = document.getElementById('pwa-manifest');
+    if (mLink) {
+      mLink.href = mURL;
+      // Paksa browser re-evaluate dengan menghapus dan menambah kembali
+      const parent = mLink.parentNode;
+      const next   = mLink.nextSibling;
+      parent.removeChild(mLink);
+      parent.insertBefore(mLink, next);
+    }
+  } catch(e) { console.warn('[PWA] Manifest inject failed:', e); }
+
+  // ── 4. Register Service Worker ──
+  if (!('serviceWorker' in navigator)) return;
+
+  // PAGE_URL dipass masuk ke SW via template literal agar SW tahu URL yang harus di-cache
+  const SW_PAGE = PAGE_URL;
+  const CACHE_V = 'cbt-pro-v3';
+
+  const swCode = `
+const CACHE  = '${CACHE_V}';
+const TO_CACHE = ['${SW_PAGE}'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(OFFLINE_URLS)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(c => c.addAll(TO_CACHE))
+      .then(() => self.skipWaiting())
+      .catch(() => self.skipWaiting())   // Jangan gagal install jika cache error
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-    )).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
-  // Hanya handle GET, skip Firebase & CDN (butuh online)
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  const isExternal = url.hostname !== self.location.hostname;
-  if (isExternal) return; // biarkan browser handle CDN/Firebase
+
+  // Skip: Firebase, CDN, blob, data, chrome-extension
+  if (url.protocol === 'blob:' || url.protocol === 'data:' || url.protocol === 'chrome-extension:') return;
+  const ext = ['firebaseio.com','googleapis.com','gstatic.com','cdnjs.cloudflare.com','fonts.googleapis.com'];
+  if (ext.some(h => url.hostname.endsWith(h))) return;
 
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        if (res && res.status === 200 && res.type !== 'opaque') {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        // Cache hanya respons sukses same-origin
+        if (res && res.status === 200 && url.origin === self.location.origin) {
+          caches.open(CACHE).then(c => c.put(e.request, res.clone())).catch(()=>{});
         }
         return res;
       })
-      .catch(() => caches.match(e.request).then(cached => cached || new Response(
-        '<h2 style="font-family:sans-serif;text-align:center;padding:3rem">CBT Pro offline — buka kembali saat ada koneksi.</h2>',
-        { headers: { 'Content-Type': 'text/html' } }
-      )))
+      .catch(() =>
+        caches.match(e.request)
+          .then(cached => cached || new Response(
+            '<!DOCTYPE html><html><head><meta charset=UTF-8><meta name=viewport content="width=device-width"><title>CBT Pro — Offline</title><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#080c10;color:#e1e8f0;text-align:center;padding:2rem}</style></head><body><div><div style="font-size:3rem">📶</div><h2 style="margin:.75rem 0 .5rem">CBT Pro Offline</h2><p style="color:#8899aa">Tidak ada koneksi internet.<br>Buka kembali saat sudah online.</p></div></body></html>',
+            { headers: { 'Content-Type': 'text/html;charset=utf-8' } }
+          ))
+      )
   );
 });
 `;
-    const swBlob = new Blob([swCode], { type: 'application/javascript' });
-    const swURL  = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swURL, { scope: '/' })
-      .then(reg => {
-        console.log('[PWA] SW registered, scope:', reg.scope);
-        // Cek update di background
-        reg.addEventListener('updatefound', () => {
-          const nw = reg.installing;
-          if (!nw) return;
-          nw.addEventListener('statechange', () => {
-            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-              toast('Update tersedia — muat ulang untuk versi terbaru.', 'info');
-            }
-          });
-        });
-      })
-      .catch(e => console.warn('[PWA] SW register failed:', e));
-  }
 
-  // ── 3. Install prompt ──
+  const swBlob = new Blob([swCode], { type: 'text/javascript' });
+  const swURL  = URL.createObjectURL(swBlob);
+
+  // Scope: gunakan direktori halaman (bukan '/' agar tidak konflik dengan blob origin)
+  const swScope = PAGE_URL.substring(0, PAGE_URL.lastIndexOf('/') + 1) || '/';
+
+  navigator.serviceWorker.register(swURL, { scope: swScope })
+    .then(reg => {
+      console.log('[PWA] SW registered ✓ scope:', reg.scope);
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            toast('Update tersedia — muat ulang untuk versi terbaru.', 'info');
+          }
+        });
+      });
+    })
+    .catch(err => console.warn('[PWA] SW register failed:', err.message));
+
+  // ── 5. Install prompt (banner) ──
   let _deferredPrompt = null;
+
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredPrompt = e;
-    // Jangan tampilkan kalau sudah pernah dismiss
-    if (localStorage.getItem('pwa_banner_dismissed')) return;
-    // Tampilkan banner setelah 3 detik
+    if (localStorage.getItem('pwa_dismissed')) return;
     setTimeout(() => {
-      const banner = document.getElementById('pwaInstallBanner');
-      if (banner) banner.style.display = 'flex';
-    }, 3000);
+      const b = document.getElementById('pwaInstallBanner');
+      if (b) b.style.display = 'flex';
+    }, 4000);
   });
 
-  const installBtn = document.getElementById('pwaInstallBtn');
-  if (installBtn) {
-    installBtn.addEventListener('click', async () => {
+  const btn = document.getElementById('pwaInstallBtn');
+  if (btn) {
+    btn.addEventListener('click', async () => {
       if (!_deferredPrompt) return;
       _deferredPrompt.prompt();
       const { outcome } = await _deferredPrompt.userChoice;
       _deferredPrompt = null;
-      const banner = document.getElementById('pwaInstallBanner');
-      if (banner) banner.style.display = 'none';
+      const b = document.getElementById('pwaInstallBanner');
+      if (b) b.style.display = 'none';
       if (outcome === 'accepted') toast('CBT Pro berhasil diinstall! 🎉', 'success');
     });
   }
 
+  const closeBtn = document.querySelector('#pwaInstallBanner button:last-child');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => localStorage.setItem('pwa_dismissed', '1'));
+  }
+
   window.addEventListener('appinstalled', () => {
     _deferredPrompt = null;
-    const banner = document.getElementById('pwaInstallBanner');
-    if (banner) banner.style.display = 'none';
-    toast('CBT Pro berhasil diinstall di perangkat ini 🎉', 'success');
+    const b = document.getElementById('pwaInstallBanner');
+    if (b) b.style.display = 'none';
+    toast('CBT Pro berhasil diinstall 🎉', 'success');
   });
 })();
 
