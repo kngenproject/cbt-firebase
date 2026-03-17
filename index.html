@@ -1736,6 +1736,369 @@ td strong { color:var(--text); font-weight:600; }
 .ss-blocked-icon { font-size:3rem; }
 .ss-blocked-msg { font-size:1.1rem; font-weight:800; color:var(--red); }
 /* ════════════════════════════════
+   LIVE DASHBOARD & SESI UPGRADES
+════════════════════════════════ */
+.live-pulse {
+  display:inline-block;
+  width:7px; height:7px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 0 2px rgba(74,222,128,.3);
+  animation:livePulse 1.4s ease-in-out infinite;
+  flex-shrink:0;
+  margin-right:.3rem;
+}
+@keyframes livePulse {
+  0%,100%{box-shadow:0 0 0 2px rgba(74,222,128,.3)}
+  50%{box-shadow:0 0 0 5px rgba(74,222,128,0)}
+}
+
+.session-monitor-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  margin-bottom:1rem;
+  overflow:hidden;
+}
+.session-monitor-head {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.875rem 1.1rem;
+  border-bottom:1px solid var(--border);
+  gap:.5rem;flex-wrap:wrap;
+}
+.session-monitor-title {
+  font-weight:700;font-size:.9rem;
+  display:flex;align-items:center;gap:.4rem;
+}
+.session-monitor-meta { font-size:.72rem;color:var(--text3); }
+.session-monitor-body { padding:1rem 1.1rem; }
+
+.live-stats-mini {
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.875rem;
+}
+.lsm-box {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:.6rem .75rem;
+  text-align:center;
+}
+.lsm-num {
+  font-family:'Space Mono',monospace;
+  font-size:1.25rem;font-weight:700;display:block;line-height:1;margin-bottom:.2rem;
+}
+.lsm-lbl { font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em; }
+
+.participant-grid {
+  display:flex;flex-wrap:wrap;gap:.35rem;
+  max-height:180px;overflow-y:auto;
+}
+.p-chip {
+  display:inline-flex;align-items:center;gap:.3rem;
+  padding:.25rem .6rem;border-radius:20px;
+  font-size:.72rem;font-weight:600;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text2);
+  white-space:nowrap;
+}
+.p-chip.done   { background:var(--green-dim);border-color:rgba(74,222,128,.3);color:var(--green); }
+.p-chip.working{ background:var(--accent-dim);border-color:rgba(56,189,248,.25);color:var(--accent); }
+
+.chart-wrap {
+  position:relative;
+  width:100%;
+  height:180px;
+  margin-top:.875rem;
+}
+
+.sesi-section-title {
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);margin-bottom:.6rem;font-weight:700;
+}
+
+/* ════════════════════════════════
+   HASIL PER SESI CARDS
+════════════════════════════════ */
+.sesi-hasil-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.sesi-hasil-card.aktif {
+  border-color: rgba(74,222,128,.3);
+}
+.sesi-hasil-card.aktif .shc-head {
+  background: linear-gradient(135deg, rgba(74,222,128,.05), transparent);
+}
+
+.shc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: .875rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  gap: .75rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  flex-wrap: wrap;
+}
+.shc-head:hover { background: rgba(255,255,255,.02); }
+
+.shc-title-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .25rem;
+}
+.shc-title {
+  font-weight: 700;
+  font-size: .9rem;
+}
+.shc-meta {
+  font-size: .72rem;
+  color: var(--text3);
+  margin-top: .15rem;
+}
+.shc-toggle {
+  font-size: .8rem;
+  color: var(--text3);
+  transition: transform .2s;
+  flex-shrink: 0;
+  margin-top: .2rem;
+}
+.shc-toggle.open { transform: rotate(180deg); }
+
+.shc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .5rem;
+  padding: .875rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.shc-stat {
+  text-align: center;
+}
+.shc-stat-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  display: block;
+  line-height: 1;
+  margin-bottom: .2rem;
+}
+.shc-stat-lbl {
+  font-size: .63rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.shc-body { padding: 0; }
+.shc-body.collapsed { display: none; }
+
+.shc-actions {
+  display: flex;
+  gap: .4rem;
+  padding: .75rem 1.1rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  background: var(--surface);
+}
+
+.shc-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text3);
+  font-size: .85rem;
+}
+
+/* Rank number in hasil table */
+.rank-medal { font-size: .85rem; }
+
+/* Score bar mini */
+.score-bar-mini {
+  display: inline-block;
+  height: 4px;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-left: .4rem;
+  background: var(--green);
+  opacity: .5;
+}
+
+/* Summary strip top of hasil page */
+.hasil-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .75rem;
+  margin-bottom: 1.5rem;
+}
+.hss-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 1rem 1.1rem;
+  text-align: center;
+}
+.hss-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: block;
+  margin-bottom: .25rem;
+}
+.hss-lbl {
+  font-size: .7rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+@media (max-width: 600px) {
+  .shc-stats { grid-template-columns: repeat(2, 1fr); }
+  .hasil-summary-strip { grid-template-columns: 1fr 1fr 1fr; }
+  .hss-num { font-size: 1.2rem; }
+}
+
+/* ════════════════════════════════
+   SUSPENDED OVERLAY (siswa)
+════════════════════════════════ */
+.suspended-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  background: rgba(8,12,16,.97);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  gap: 1.25rem;
+  animation: screenIn .3s ease;
+}
+.suspended-overlay.show { display: flex; }
+.suspended-icon { font-size: 3.5rem; line-height: 1; }
+.suspended-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--red);
+  line-height: 1.2;
+}
+.suspended-msg {
+  font-size: .875rem;
+  color: var(--text2);
+  max-width: 340px;
+  line-height: 1.6;
+}
+.suspended-box {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r2);
+  padding: 1.25rem 1.5rem;
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+  overflow: hidden;
+}
+.suspended-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--red), var(--orange));
+}
+.perm-status {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  justify-content: center;
+  padding: .65rem 1rem;
+  border-radius: var(--r);
+  font-size: .82rem;
+  font-weight: 700;
+  margin-bottom: .875rem;
+}
+.perm-status.pending  { background: var(--yellow-dim);  color: var(--yellow);  border: 1px solid rgba(251,191,36,.3); }
+.perm-status.approved { background: var(--green-dim);   color: var(--green);   border: 1px solid rgba(74,222,128,.3); }
+.perm-status.denied   { background: var(--red-dim);     color: var(--red);     border: 1px solid rgba(248,113,113,.3); }
+.perm-status.idle     { background: var(--accent-dim);  color: var(--accent);  border: 1px solid rgba(56,189,248,.25); }
+.perm-pulse {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: livePulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════
+   NOTIF BADGE GURU (permintaan izin)
+════════════════════════════════ */
+.perm-badge {
+  display: none;
+  position: absolute;
+  top: -3px; right: -3px;
+  background: var(--red);
+  color: #fff;
+  font-size: .55rem;
+  font-weight: 800;
+  font-family: 'Space Mono', monospace;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  padding: 0 3px;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 2px solid var(--card);
+}
+.perm-badge.show { display: flex; }
+
+.bnav-item { position: relative; }
+
+/* ════════════════════════════════
+   PERMISSION REQUEST PANEL (guru - tab sesi)
+════════════════════════════════ */
+.perm-request-card {
+  background: var(--card2);
+  border: 1.5px solid rgba(248,113,113,.35);
+  border-radius: var(--r2);
+  padding: 1rem 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+  animation: screenIn .2s ease;
+}
+.perm-req-info { flex: 1; min-width: 0; }
+.perm-req-name { font-weight: 700; font-size: .88rem; margin-bottom: .2rem; }
+.perm-req-meta { font-size: .72rem; color: var(--text3); }
+.perm-req-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+
+.perm-requests-container {
+  margin-bottom: 1rem;
+}
+.perm-requests-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--red);
+  margin-bottom: .6rem;
+}
+
+/* ════════════════════════════════
    PRINT (export PDF)
 ════════════════════════════════ */
 @media print {
@@ -1747,12 +2110,37 @@ td strong { color:var(--text); font-weight:600; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <!-- QRCode.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <!-- Firebase Compat SDK v9 (supports legacy firebase.xxx syntax) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+<!-- ══ SUSPENDED OVERLAY (siswa) ══ -->
+<div class="suspended-overlay" id="suspendedOverlay">
+  <div class="suspended-icon">🚫</div>
+  <div class="suspended-title">Ujian Ditangguhkan!</div>
+  <div class="suspended-msg">Kamu telah mencapai batas pelanggaran. Ujian dihentikan sementara dan kamu perlu meminta izin kepada guru untuk melanjutkan.</div>
+
+  <div class="suspended-box">
+    <div style="font-size:.72rem;color:var(--text3);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.08em">Data Pelanggaran</div>
+    <div style="display:flex;gap:.5rem;justify-content:center;margin-bottom:1rem;flex-wrap:wrap">
+      <span class="badge badge-red" style="font-size:.75rem" id="suspViolCount">⚠ 0 pelanggaran</span>
+      <span class="badge badge-gray" style="font-size:.75rem" id="suspExamName">—</span>
+    </div>
+    <div class="perm-status idle" id="permStatus">
+      <span class="perm-pulse"></span>
+      <span id="permStatusText">Tekan tombol untuk meminta izin</span>
+    </div>
+    <button class="btn btn-primary" id="btnRequestPerm" onclick="requestPermission()" style="background:var(--orange);margin-bottom:.5rem">
+      🙋 Minta Izin Lanjut Ujian
+    </button>
+    <div style="font-size:.7rem;color:var(--text3);text-align:center">Guru akan melihat permintaanmu secara real-time</div>
+  </div>
+</div>
 
 <!-- ══ SCREENSHOT BLOCKED OVERLAY ══ -->
 <div class="ss-blocked" id="ssBlocked">
@@ -1785,6 +2173,7 @@ td strong { color:var(--text); font-weight:600; }
     <button class="bnav-item" id="bn-sesi"
       ontouchstart="navTap('sesi')" onclick="navTap('sesi')">
       <span class="bnav-icon">📡</span>Sesi
+      <span class="perm-badge" id="permBadgeBnav">0</span>
     </button>
     <button class="bnav-item" id="bn-hasil"
       ontouchstart="navTap('hasil')" onclick="navTap('hasil')">
@@ -1807,7 +2196,7 @@ td strong { color:var(--text); font-weight:600; }
   <small style="color:var(--text3);font-size:.75rem">Ujian dilanjutkan otomatis...</small>
 </div>
 
-<div class="warning-counter" id="warnCounter">⚠ Pelanggaran: <span id="warnNum">0</span>/3</div>
+<div class="warning-counter" id="warnCounter">⚠ Pelanggaran: <span id="warnNum">0</span>/2</div>
 
 <!-- ══ CONFIRM MODAL ══ -->
 <div class="modal-bg" id="confirmModal">
@@ -1881,6 +2270,7 @@ td strong { color:var(--text); font-weight:600; }
       <div class="qr-scan-hint">Arahkan kamera ke QR code yang ditampilkan guru</div>
       <div class="qr-detected" id="qrDetected">✓ Kode terdeteksi: <strong id="qrDetectedCode">—</strong></div>
       <div class="qr-error-msg" id="qrErrorMsg"></div>
+      <button class="btn btn-outline btn-sm" style="width:100%;margin-top:.6rem" onclick="startCamera()">🔄 Coba Lagi</button>
     </div>
   </div>
 </div>
@@ -1986,7 +2376,10 @@ td strong { color:var(--text); font-weight:600; }
       <div class="nav-item active" data-page="overview" onclick="switchPage('overview')"><span class="nav-icon">📊</span> Dashboard</div>
       <div class="nav-item" data-page="buat" onclick="switchPage('buat')"><span class="nav-icon">✏️</span> Buat Ujian</div>
       <div class="nav-item" data-page="upload" onclick="switchPage('upload')"><span class="nav-icon">📤</span> Upload Soal</div>
-      <div class="nav-item" data-page="sesi" onclick="switchPage('sesi')"><span class="nav-icon">📡</span> Sesi Aktif</div>
+      <div class="nav-item" data-page="sesi" onclick="switchPage('sesi')" style="position:relative">
+        <span class="nav-icon">📡</span> Sesi Aktif
+        <span class="perm-badge" id="permBadgeSidebar" style="position:absolute;top:4px;right:6px">0</span>
+      </div>
       <div class="nav-item" data-page="hasil" onclick="switchPage('hasil')"><span class="nav-icon">📋</span> Hasil & Nilai</div>
       <div class="nav-spacer"></div>
       <div class="nav-logout" onclick="confirmLogout()">⎋ Keluar</div>
@@ -2011,12 +2404,16 @@ td strong { color:var(--text); font-weight:600; }
         </div>
         <div class="stat-row">
           <div class="stat-box" data-icon="📝"><span class="stat-num" id="stTotalExam" style="color:var(--accent)">0</span><span class="stat-label">Total Ujian</span></div>
-          <div class="stat-box" data-icon="🎓"><span class="stat-num" id="stTotalSiswa" style="color:var(--green)">0</span><span class="stat-label">Peserta</span></div>
+          <div class="stat-box" data-icon="🎓"><span class="stat-num" id="stTotalSiswa" style="color:var(--green)">0</span><span class="stat-label">Total Peserta</span></div>
           <div class="stat-box" data-icon="📡"><span class="stat-num" id="stAktif" style="color:var(--yellow)">0</span><span class="stat-label">Sesi Aktif</span></div>
           <div class="stat-box" data-icon="⭐"><span class="stat-num" id="stRataRata" style="color:var(--orange)">—</span><span class="stat-label">Rata-rata Nilai</span></div>
         </div>
+
+        <!-- Live Monitor per active session -->
+        <div id="liveMonitor" style="margin-bottom:1.5rem"></div>
+
         <div class="table-wrap">
-          <div class="table-head"><h3>Ujian Terbaru</h3></div>
+          <div class="table-head"><h3>Semua Ujian</h3></div>
           <table>
             <thead><tr><th>Nama Ujian</th><th>Kode</th><th>Soal</th><th>Peserta</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody id="examTable"><tr><td colspan="6" style="text-align:center;color:var(--text3);padding:2rem">Belum ada ujian. Buat ujian pertama!</td></tr></tbody>
@@ -2047,8 +2444,8 @@ td strong { color:var(--text); font-weight:600; }
         <div class="form-grid-2">
           <div class="field"><label>Keamanan Anti-Contek</label>
             <select id="examSec">
-              <option value="3">Ketat (3x → auto submit)</option>
-              <option value="5">Sedang (5x → auto submit)</option>
+              <option value="2" selected>Ketat (2x → minta izin guru)</option>
+              <option value="3">Sedang (3x → minta izin guru)</option>
               <option value="0">Nonaktif</option>
             </select>
           </div>
@@ -2143,7 +2540,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       <!-- ── SESI AKTIF ── -->
       <div id="page-sesi" class="tab-pane">
         <div class="page-header">
-          <div><h2>Sesi Aktif</h2><p>Monitor ujian yang sedang berjalan</p></div>
+          <div><h2>Sesi Aktif</h2><p>Monitor real-time ujian yang sedang berjalan</p></div>
           <button class="btn btn-outline btn-sm" onclick="refreshSesi()">⟳ Refresh</button>
         </div>
         <div id="sesiList">
@@ -2154,25 +2551,32 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
       <!-- ── HASIL ── -->
       <div id="page-hasil" class="tab-pane">
         <div class="page-header">
-          <div><h2>Hasil & Nilai</h2><p>Rekap nilai semua peserta</p></div>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <select id="filterExam" class="btn btn-outline btn-sm" style="width:auto;padding:.45rem .75rem;font-weight:600" onchange="renderHasil()">
-              <option value="">Semua Ujian</option>
-            </select>
-            <button class="btn btn-green btn-sm" onclick="exportCSV()">📥 Export CSV</button>
-            <button class="btn btn-outline btn-sm" onclick="exportPDF()">📄 Export PDF</button>
+          <div><h2>Hasil &amp; Nilai</h2><p>Rekap nilai peserta per sesi ujian</p></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-green btn-sm" onclick="exportCSVAll()">📥 Export Semua</button>
+            <button class="btn btn-outline btn-sm" onclick="renderHasil()">⟳ Refresh</button>
           </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>No</th><th>Nama</th><th>NIS</th><th>Ujian</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Waktu</th><th>Pelanggaran</th></tr></thead>
-            <tbody id="hasilTable"><tr><td colspan="9" style="text-align:center;color:var(--text3);padding:2rem">Belum ada data hasil ujian.</td></tr></tbody>
-          </table>
+
+        <!-- Summary strip -->
+        <div class="hasil-summary-strip" id="hasilSummaryStrip" style="display:none">
+          <div class="hss-box">
+            <span class="hss-num" id="hssTotal" style="color:var(--accent)">0</span>
+            <span class="hss-lbl">Total Peserta</span>
+          </div>
+          <div class="hss-box">
+            <span class="hss-num" id="hssAvg" style="color:var(--orange)">—</span>
+            <span class="hss-lbl">Rata-rata Global</span>
+          </div>
+          <div class="hss-box">
+            <span class="hss-num" id="hssSesi" style="color:var(--purple)">0</span>
+            <span class="hss-lbl">Total Sesi</span>
+          </div>
         </div>
-        <div id="hasilStats" style="display:none" class="session-info">
-          <div class="sinfo-card"><span class="sinfo-num" id="hsAvg" style="color:var(--accent)">-</span><span class="sinfo-label">Rata-rata</span></div>
-          <div class="sinfo-card"><span class="sinfo-num" id="hsTertinggi" style="color:var(--green)">-</span><span class="sinfo-label">Tertinggi</span></div>
-          <div class="sinfo-card"><span class="sinfo-num" id="hsTerendah" style="color:var(--red)">-</span><span class="sinfo-label">Terendah</span></div>
+
+        <!-- Per-session cards rendered here -->
+        <div id="hasilPerSesi">
+          <div style="text-align:center;padding:3rem;color:var(--text3)">Memuat data...</div>
         </div>
       </div>
 
@@ -2342,6 +2746,52 @@ const FSDb = {
   listenResults(examCode, callback) {
     return fdb.collection('results').where('examCode','==',examCode)
       .onSnapshot(snap => callback(snap.docs.map(d => d.data())), e => console.warn(e));
+  },
+  // ── Participant tracking (who joined, not yet submitted) ──
+  async saveParticipant(data) {
+    try {
+      await fdb.collection('participants').doc(data.examCode+'_'+data.nis).set(data, {merge:true});
+    } catch(e) { console.warn('FS saveParticipant:', e); }
+  },
+  listenParticipants(examCode, callback) {
+    return fdb.collection('participants').where('examCode','==',examCode)
+      .onSnapshot(snap => callback(snap.docs.map(d => d.data())), e => console.warn(e));
+  },
+  listenParticipantsMulti(examCodes, callback) {
+    if (!examCodes.length) { callback([]); return () => {}; }
+    const codes = examCodes.slice(0,10);
+    return fdb.collection('participants').where('examCode','in',codes)
+      .onSnapshot(snap => callback(snap.docs.map(d => d.data())), e => console.warn(e));
+  },
+  // ── Permission Requests ──
+  async savePermissionRequest(req) {
+    try {
+      const id = req.examCode + '_' + req.nis;
+      await fdb.collection('permissionRequests').doc(id).set(req, { merge: true });
+    } catch(e) { console.warn('FS savePermReq:', e); }
+  },
+  listenPermissionRequest(examCode, nis, callback) {
+    const id = examCode + '_' + nis;
+    return fdb.collection('permissionRequests').doc(id)
+      .onSnapshot(snap => callback(snap.exists ? snap.data() : null), e => console.warn(e));
+  },
+  // Guru: listen all pending requests for a set of examCodes
+  listenPermissionRequests(examCodes, callback) {
+    if (!examCodes.length) { callback([]); return () => {}; }
+    const codes = examCodes.slice(0, 10);
+    return fdb.collection('permissionRequests')
+      .where('examCode', 'in', codes)
+      .where('status', '==', 'pending')
+      .onSnapshot(snap => callback(snap.docs.map(d => d.data())), e => console.warn(e));
+  },
+  async respondPermissionRequest(examCode, nis, response) {
+    try {
+      const id = examCode + '_' + nis;
+      await fdb.collection('permissionRequests').doc(id).update({
+        status: response,
+        respondedAt: Date.now()
+      });
+    } catch(e) { console.warn('FS respondPermReq:', e); }
   }
 };
 
@@ -2465,7 +2915,8 @@ let APP = {
   timeLeft: 0,
   startTime: null,
   violations: 0,
-  maxViolations: 3,
+  maxViolations: 2,
+  suspended: false,      // true saat ujian ditangguhkan menunggu izin
   reviewMode: false,
   // security
   secActive: false,
@@ -2623,6 +3074,11 @@ function closeLogoutModal() {
 
 async function doLogout() {
   closeLogoutModal();
+  // Cleanup semua listeners & chart sebelum logout
+  dashListeners.forEach(u => { try{u();}catch(e){} }); dashListeners = [];
+  hasilListeners.forEach(u => { try{u();}catch(e){} }); hasilListeners = [];
+  sesiListeners.forEach(u => { try{u();}catch(e){} }); sesiListeners = [];
+  Object.values(sesiCharts).forEach(c => { try{c.destroy();}catch(e){} }); sesiCharts = {};
   try { await auth.signOut(); } catch(e) {}
   APP.role = null;
   APP.guruEmail = null;
@@ -2655,7 +3111,18 @@ function setBnav(p) {
   if (el) el.classList.add('active');
 }
 
+function _cleanupPage(leaving) {
+  // Bersihkan listeners halaman yang sedang ditinggalkan
+  if (leaving !== 'hasil') { hasilListeners.forEach(u => { try{u();}catch(e){} }); hasilListeners = []; }
+  if (leaving !== 'sesi') {
+    sesiListeners.forEach(u => { try{u();}catch(e){} }); sesiListeners = [];
+    Object.values(sesiCharts).forEach(c => { try{c.destroy();}catch(e){} }); sesiCharts = {};
+  }
+  if (leaving !== 'overview') { dashListeners.forEach(u => { try{u();}catch(e){} }); dashListeners = []; }
+}
+
 function switchPage(p) {
+  _cleanupPage(p);
   document.querySelectorAll('.tab-pane[id^="page-"]').forEach(el => el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -2671,7 +3138,7 @@ function switchPage(p) {
   const main = document.getElementById('dashMain');
   if (main) main.scrollTop = 0;
   if (p === 'hasil') renderHasil();
-  if (p === 'sesi') refreshSesi();
+  if (p === 'sesi') { refreshSesi(); _updatePermBadge(0); }
   if (p === 'overview') refreshDashboard();
 }
 
@@ -2748,46 +3215,155 @@ function switchPage(p) {
 })();
 
 function switchTab(el, pane) {
-  // Perbaikan: hapus variabel yang tidak terpakai, cari container yang tepat
   const tabsContainer = el.closest('.tabs');
   tabsContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  // Cari semua pane di dalam container yang sama
+  // Scope pane lookup to direct siblings only — avoid clearing panes from outer page
   const parent = tabsContainer.parentElement;
-  parent.querySelectorAll('.tab-pane').forEach(tp => tp.classList.remove('active'));
-  document.getElementById(pane)?.classList.add('active');
+  // Find only direct child tab-panes of parent (not nested ones)
+  const panes = Array.from(parent.children).filter(c => c.classList.contains('tab-pane'));
+  if (panes.length) {
+    panes.forEach(tp => tp.classList.remove('active'));
+  } else {
+    // fallback: querySelectorAll scoped to parent
+    parent.querySelectorAll(':scope > .tab-pane').forEach(tp => tp.classList.remove('active'));
+  }
+  const target = document.getElementById(pane);
+  if (target) target.classList.add('active');
 }
 
+// Track dashboard live listeners
+let dashListeners = [];
+let hasilListeners = [];
+
 async function refreshDashboard() {
+  // Unsubscribe old listeners
+  dashListeners.forEach(u => u());
+  dashListeners = [];
+
   // Ambil dari Firestore, fallback ke localStorage
   try {
     const fsExams = await FSDb.getExams();
-    if (fsExams.length) {
-      APP.exams = fsExams;
-      DB.set('exams', fsExams);
-    } else {
-      APP.exams = DB.get('exams', []);
-    }
+    if (fsExams.length) { APP.exams = fsExams; DB.set('exams', fsExams); }
+    else { APP.exams = DB.get('exams', []); }
   } catch { APP.exams = DB.get('exams', []); }
 
   try {
     const fsResults = await FSDb.getResults();
-    if (fsResults.length) {
-      APP.results = fsResults;
-      DB.set('results', fsResults);
-    } else {
-      APP.results = DB.get('results', []);
-    }
+    if (fsResults.length) { APP.results = fsResults; DB.set('results', fsResults); }
+    else { APP.results = DB.get('results', []); }
   } catch { APP.results = DB.get('results', []); }
+
+  const aktifExams = APP.exams.filter(e => e.status === 'aktif');
+
+  // Stats: filter by active sessions if available, else all
+  const relevantResults = aktifExams.length
+    ? APP.results.filter(r => aktifExams.some(e => e.code === r.examCode))
+    : APP.results;
 
   document.getElementById('stTotalExam').textContent = APP.exams.length;
   const totalSiswa = new Set(APP.results.map(r => r.nis)).size;
   document.getElementById('stTotalSiswa').textContent = totalSiswa;
-  const aktif = APP.exams.filter(e => e.status === 'aktif').length;
-  document.getElementById('stAktif').textContent = aktif;
-  const avg = APP.results.length ? Math.round(APP.results.reduce((s,r) => s+r.score,0)/APP.results.length) : '—';
+  document.getElementById('stAktif').textContent = aktifExams.length;
+  const avg = relevantResults.length
+    ? Math.round(relevantResults.reduce((s,r) => s+r.score, 0) / relevantResults.length)
+    : (APP.results.length ? Math.round(APP.results.reduce((s,r)=>s+r.score,0)/APP.results.length) : '—');
   document.getElementById('stRataRata').textContent = avg;
+
   renderExamTable();
+
+  // Live monitor per active session
+  const monitor = document.getElementById('liveMonitor');
+  if (!aktifExams.length) {
+    monitor.innerHTML = '';
+    _updatePermBadge(0);
+    return;
+  }
+
+  // Global permission badge listener (works on any page, not just sesi)
+  if (aktifExams.length) {
+    const codes = aktifExams.map(e => e.code);
+    const uPerm = FSDb.listenPermissionRequests(codes, (reqs) => {
+      _updatePermBadge(reqs.length);
+    });
+    dashListeners.push(uPerm);
+  }
+
+  monitor.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.875rem">
+      <span class="live-pulse"></span>
+      <span style="font-size:.78rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">Live — Sesi Aktif</span>
+    </div>
+    ${aktifExams.map((exam) => {
+      const st = _escHtml(exam.title);
+      const sm = _escHtml(exam.mapel);
+      const sc = _escHtml(exam.code);
+      return `
+      <div class="session-monitor-card" id="smCard-${sc}">
+        <div class="session-monitor-head">
+          <div>
+            <div class="session-monitor-title">
+              <span class="live-pulse"></span>${st}
+            </div>
+            <div class="session-monitor-meta">${sm} · ${exam.questions.length} soal · ${exam.dur} menit</div>
+          </div>
+          <span class="badge badge-blue mono">${sc}</span>
+        </div>
+        <div class="session-monitor-body">
+          <div class="live-stats-mini">
+            <div class="lsm-box"><span class="lsm-num" id="smLogin-${sc}" style="color:var(--accent)">0</span><span class="lsm-lbl">Login</span></div>
+            <div class="lsm-box"><span class="lsm-num" id="smSelesai-${sc}" style="color:var(--green)">0</span><span class="lsm-lbl">Selesai</span></div>
+            <div class="lsm-box"><span class="lsm-num" id="smAvg-${sc}" style="color:var(--orange)">—</span><span class="lsm-lbl">Rata-rata</span></div>
+          </div>
+          <div class="sesi-section-title">👥 Peserta</div>
+          <div class="participant-grid" id="smParticipants-${sc}">
+            <span style="color:var(--text3);font-size:.78rem">Menunggu peserta...</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`;
+
+  // Setup real-time listeners per active exam
+  aktifExams.forEach(exam => {
+    const sc = _escHtml(exam.code);
+    // Listener participants (who joined)
+    const u1 = FSDb.listenParticipants(exam.code, (participants) => {
+      const loginCount = participants.length;
+      const done = participants.filter(p => p.status === 'selesai');
+      const avgVal = done.length ? Math.round(done.reduce((s,p)=>s+(p.score||0),0)/done.length) : '—';
+
+      const loginEl   = document.getElementById(`smLogin-${sc}`);
+      const selesaiEl = document.getElementById(`smSelesai-${sc}`);
+      const avgEl     = document.getElementById(`smAvg-${sc}`);
+      const pgEl      = document.getElementById(`smParticipants-${sc}`);
+
+      if (loginEl)   loginEl.textContent   = loginCount;
+      if (selesaiEl) selesaiEl.textContent = done.length;
+      if (avgEl)     avgEl.textContent     = avgVal;
+      if (pgEl) {
+        if (!participants.length) {
+          pgEl.innerHTML = '<span style="color:var(--text3);font-size:.78rem">Belum ada peserta login.</span>';
+        } else {
+          const sorted = [...participants].sort((a,b) => {
+            if (a.status === 'selesai' && b.status !== 'selesai') return -1;
+            if (b.status === 'selesai' && a.status !== 'selesai') return 1;
+            return (b.score||0) - (a.score||0);
+          });
+          pgEl.innerHTML = sorted.map(p => {
+            const isDone = p.status === 'selesai';
+            const scoreStr = isDone ? ` · <strong>${p.score}</strong>` : '';
+            return `<span class="p-chip ${isDone?'done':'working'}">${isDone?'✓':'⏱'} ${_escHtml(p.name)}${scoreStr}</span>`;
+          }).join('');
+        }
+      }
+
+      // Update global avg stat jika hanya satu sesi aktif
+      if (aktifExams.length === 1 && done.length) {
+        document.getElementById('stRataRata').textContent = avgVal;
+      }
+    });
+    dashListeners.push(u1);
+  });
 }
 
 function renderExamTable() {
@@ -2798,9 +3374,12 @@ function renderExamTable() {
     const statusBadge = e.status === 'aktif'
       ? `<span class="badge badge-green">● Aktif</span>`
       : `<span class="badge badge-gray">■ Selesai</span>`;
+    const safeTitle = _escHtml(e.title);
+    const safeMapel = _escHtml(e.mapel);
+    const safeCode  = _escHtml(e.code);
     return `<tr>
-      <td><strong>${e.title}</strong><br><small style="color:var(--text3)">${e.mapel}</small></td>
-      <td><span class="badge badge-blue mono">${e.code}</span></td>
+      <td><strong>${safeTitle}</strong><br><small style="color:var(--text3)">${safeMapel}</small></td>
+      <td><span class="badge badge-blue mono">${safeCode}</span></td>
       <td>${e.questions.length}</td>
       <td>${peserta}</td>
       <td>${statusBadge}</td>
@@ -2822,7 +3401,11 @@ async function toggleExamStatus(code) {
     APP.exams[idx].status = newStatus;
     DB.set('exams', APP.exams);
     await FSDb.updateExamStatus(code, newStatus);
-    refreshDashboard();
+    // Refresh halaman yang sedang aktif
+    const activePage = PAGES.find(p => document.getElementById('page-'+p)?.classList.contains('active'));
+    if (activePage === 'sesi') refreshSesi();
+    else if (activePage === 'hasil') renderHasil();
+    else refreshDashboard();
     toast('Status ujian diperbarui', 'success');
   }
 }
@@ -2840,7 +3423,9 @@ function deleteExam(code) {
     APP.exams = DB.get('exams', []).filter(e => e.code !== code);
     DB.set('exams', APP.exams);
     await FSDb.deleteExam(code);
-    refreshDashboard();
+    const activePage = PAGES.find(p => document.getElementById('page-'+p)?.classList.contains('active'));
+    if (activePage === 'hasil') renderHasil();
+    else refreshDashboard();
     toast('Ujian dihapus', 'info');
     confirmBtn.textContent = 'Ya, Selesai';
     confirmBtn.disabled = false;
@@ -3076,11 +3661,14 @@ function downloadTemplate(type) {
 // ══════════════════════════════════════
 // Track sesi listeners to unsubscribe
 let sesiListeners = [];
+let sesiCharts = {};
 
 async function refreshSesi() {
-  // Unsubscribe previous listeners
+  // Unsubscribe previous listeners & destroy charts
   sesiListeners.forEach(unsub => unsub());
   sesiListeners = [];
+  Object.values(sesiCharts).forEach(c => { try { c.destroy(); } catch(e){} });
+  sesiCharts = {};
 
   try {
     const fsExams = await FSDb.getExams();
@@ -3096,25 +3684,53 @@ async function refreshSesi() {
   }
 
   el.innerHTML = aktif.map((exam, idx) => `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:1rem;overflow:hidden">
-      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+    <div class="session-monitor-card">
+      <div class="session-monitor-head">
         <div>
-          <div style="font-weight:700;margin-bottom:.2rem">${exam.title}</div>
-          <div style="font-size:.75rem;color:var(--text2)">${exam.mapel} · ${exam.questions.length} soal · ${exam.dur} menit</div>
+          <div class="session-monitor-title">
+            <span class="live-pulse"></span>${exam.title}
+          </div>
+          <div class="session-monitor-meta">${exam.mapel} · ${exam.questions.length} soal · ${exam.dur} menit</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:.5rem">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.4rem">
           <div class="qr-box" id="sesiQR-${idx}" style="padding:8px"></div>
-          <div style="font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--accent);letter-spacing:.2em">${exam.code}</div>
-          <button class="btn btn-danger btn-sm" style="width:100%" onclick="toggleExamStatus('${exam.code}')">Tutup Sesi</button>
+          <div style="font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:.2em">${exam.code}</div>
+          <button class="btn btn-danger btn-xs" style="width:100%" onclick="toggleExamStatus('${exam.code}')">Tutup Sesi</button>
         </div>
       </div>
-      <div style="padding:1rem 1.25rem">
-        <div style="font-size:.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">
-          🔴 Live · Peserta Selesai: <span id="sesiCount-${idx}">0</span>
+      <div class="session-monitor-body">
+        <!-- Mini stats -->
+        <div class="live-stats-mini">
+          <div class="lsm-box"><span class="lsm-num" id="slLogin-${exam.code}" style="color:var(--accent)">0</span><span class="lsm-lbl">Login</span></div>
+          <div class="lsm-box"><span class="lsm-num" id="slSelesai-${exam.code}" style="color:var(--green)">0</span><span class="lsm-lbl">Selesai</span></div>
+          <div class="lsm-box"><span class="lsm-num" id="slAvg-${exam.code}" style="color:var(--orange)">—</span><span class="lsm-lbl">Rata-rata</span></div>
         </div>
-        <div id="sesiPeserta-${idx}"><p style="color:var(--text3);font-size:.8rem">Memuat...</p></div>
+
+        <!-- Permission Requests -->
+        <div class="perm-requests-container" id="slPermReqs-${exam.code}" style="display:none">
+          <div class="perm-requests-header">
+            <span>🙋</span> Permintaan Izin Lanjut Ujian
+            <span class="badge badge-red" id="slPermCount-${exam.code}">0</span>
+          </div>
+          <div id="slPermList-${exam.code}"></div>
+        </div>
+
+        <!-- Participants -->
+        <div class="sesi-section-title">👥 Yang Login &amp; Status</div>
+        <div class="participant-grid" id="slParticipants-${exam.code}" style="margin-bottom:1rem">
+          <span style="color:var(--text3);font-size:.78rem">Menunggu peserta...</span>
+        </div>
+
+        <!-- Chart: avg per sesi -->
+        <div class="sesi-section-title">📊 Grafik Nilai Real-time</div>
+        <div class="chart-wrap">
+          <canvas id="slChart-${exam.code}"></canvas>
+        </div>
       </div>
     </div>`).join('');
+
+  // Track all pending counts across sessions for badge
+  let _allPermCounts = {};
 
   // Generate QR codes
   setTimeout(() => {
@@ -3130,30 +3746,189 @@ async function refreshSesi() {
         }
       } catch(e) {}
 
-      // Real-time listener per exam
-      const unsub = FSDb.listenResults(exam.code, (peserta) => {
-        const sorted = peserta.sort((a,b) => b.score - a.score);
-        const countEl = document.getElementById(`sesiCount-${idx}`);
-        const listEl  = document.getElementById(`sesiPeserta-${idx}`);
-        if (countEl) countEl.textContent = sorted.length;
-        if (listEl) {
-          listEl.innerHTML = sorted.length
-            ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem">
-                ${sorted.map((r,i) => `<span class="badge badge-green">${['🥇','🥈','🥉'][i]||'✓'} ${r.name} · <strong>${r.score}</strong></span>`).join('')}
-               </div>`
-            : '<p style="color:var(--text3);font-size:.8rem">Belum ada peserta yang selesai.</p>';
-        }
+      // Init chart with placeholder
+      _initSesiChart(exam.code, exam.questions.length);
+
+      // Real-time listener: results (submitted)
+      const u1 = FSDb.listenResults(exam.code, (results) => {
+        const done = [...results].sort((a,b) => b.score - a.score);
+        const avgVal = done.length ? Math.round(done.reduce((s,r)=>s+r.score,0)/done.length) : null;
+        const selesaiEl = document.getElementById(`slSelesai-${exam.code}`);
+        const avgEl = document.getElementById(`slAvg-${exam.code}`);
+        if (selesaiEl) selesaiEl.textContent = done.length;
+        if (avgEl) avgEl.textContent = avgVal !== null ? avgVal : '—';
+        _updateSesiChart(exam.code, done, exam.questions.length);
       });
-      sesiListeners.push(unsub);
+      sesiListeners.push(u1);
+
+      // Real-time listener: participants (joined)
+      const u2 = FSDb.listenParticipants(exam.code, (participants) => {
+        const loginEl = document.getElementById(`slLogin-${exam.code}`);
+        const pgEl = document.getElementById(`slParticipants-${exam.code}`);
+        if (loginEl) loginEl.textContent = participants.length;
+        if (!pgEl) return;
+        if (!participants.length) {
+          pgEl.innerHTML = '<span style="color:var(--text3);font-size:.78rem">Belum ada peserta login.</span>';
+          return;
+        }
+        const sorted = [...participants].sort((a,b) => {
+          if (a.status === 'selesai' && b.status !== 'selesai') return -1;
+          if (b.status === 'selesai' && a.status !== 'selesai') return 1;
+          return (b.score||0) - (a.score||0);
+        });
+        pgEl.innerHTML = sorted.map(p => {
+          const isDone = p.status === 'selesai';
+          const isSusp = p.status === 'suspended';
+          const scoreStr = isDone ? ` · <strong>${p.score}</strong>` : '';
+          const cls = isDone ? 'done' : isSusp ? '' : 'working';
+          const icon = isDone ? '✓' : isSusp ? '🚫' : '⏱';
+          return `<span class="p-chip ${cls}" style="${isSusp ? 'border-color:rgba(248,113,113,.4);color:var(--red);background:var(--red-dim)' : ''}">${icon} ${_escHtml(p.name)}${scoreStr}</span>`;
+        }).join('');
+      });
+      sesiListeners.push(u2);
+
+      // Real-time listener: permission requests
+      const u3 = FSDb.listenPermissionRequests([exam.code], (reqs) => {
+        const container = document.getElementById(`slPermReqs-${exam.code}`);
+        const listEl = document.getElementById(`slPermList-${exam.code}`);
+        const countEl = document.getElementById(`slPermCount-${exam.code}`);
+        if (!container || !listEl) return;
+
+        _allPermCounts[exam.code] = reqs.length;
+        const totalPending = Object.values(_allPermCounts).reduce((s,n)=>s+n,0);
+        _updatePermBadge(totalPending);
+
+        if (!reqs.length) {
+          container.style.display = 'none';
+          return;
+        }
+        container.style.display = 'block';
+        if (countEl) countEl.textContent = reqs.length;
+
+        listEl.innerHTML = reqs.map(req => `
+          <div class="perm-request-card">
+            <div class="perm-req-info">
+              <div class="perm-req-name">🙋 ${_escHtml(req.name)}</div>
+              <div class="perm-req-meta">NIS: ${_escHtml(req.nis)} · ⚠ ${req.violations} pelanggaran · ${_timeAgo(req.requestedAt)}</div>
+            </div>
+            <div class="perm-req-actions">
+              <button class="btn btn-green btn-xs" onclick="respondPerm('${exam.code}','${_escHtml(req.nis)}','approved')">✓ Izinkan</button>
+              <button class="btn btn-danger btn-xs" onclick="respondPerm('${exam.code}','${_escHtml(req.nis)}','denied')">✗ Tolak</button>
+            </div>
+          </div>`).join('');
+      });
+      sesiListeners.push(u3);
     });
-  }, 50);
+  }, 80);
+}
+
+// ── Guru respond to permission request ──
+async function respondPerm(examCode, nis, response) {
+  await FSDb.respondPermissionRequest(examCode, nis, response);
+  // Update participant status
+  FSDb.saveParticipant({
+    examCode, nis,
+    status: response === 'approved' ? 'mengerjakan' : 'keluar',
+    score: null
+  }).catch(() => {});
+  toast(response === 'approved' ? `✅ Izin diberikan ke ${nis}` : `❌ Permintaan ${nis} ditolak`, response === 'approved' ? 'success' : 'info');
+}
+
+function _updatePermBadge(count) {
+  const b1 = document.getElementById('permBadgeBnav');
+  const b2 = document.getElementById('permBadgeSidebar');
+  [b1, b2].forEach(b => {
+    if (!b) return;
+    if (count > 0) { b.textContent = count; b.classList.add('show'); }
+    else b.classList.remove('show');
+  });
+}
+
+function _timeAgo(ts) {
+  if (!ts) return '';
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return `${sec}d lalu`;
+  const min = Math.floor(sec / 60);
+  return `${min}m lalu`;
+}
+
+function _initSesiChart(examCode, totalSoal) {
+  const canvas = document.getElementById(`slChart-${examCode}`);
+  if (!canvas || !window.Chart) return;
+  // Destroy old if exists
+  if (sesiCharts[examCode]) { try { sesiCharts[examCode].destroy(); } catch(e){} }
+
+  const ctx = canvas.getContext('2d');
+  sesiCharts[examCode] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['0–19','20–39','40–59','60–79','80–100'],
+      datasets: [{
+        label: 'Jumlah Peserta',
+        data: [0,0,0,0,0],
+        backgroundColor: ['rgba(248,113,113,.7)','rgba(251,146,60,.7)','rgba(251,191,36,.7)','rgba(56,189,248,.7)','rgba(74,222,128,.7)'],
+        borderColor: ['#f87171','#fb923c','#fbbf24','#38bdf8','#4ade80'],
+        borderWidth: 1.5,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 400 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (i) => 'Rentang nilai: ' + i[0].label,
+            label: (i) => `${i.raw} peserta`
+          },
+          backgroundColor: '#131920',
+          borderColor: '#1e2d3d',
+          borderWidth: 1,
+          titleColor: '#8899aa',
+          bodyColor: '#e1e8f0',
+          padding: 10,
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,.05)' },
+          ticks: { color: '#4a6070', font: { size: 10, family: 'Space Mono' } }
+        },
+        y: {
+          beginAtZero: true, ticks: { stepSize: 1, color: '#4a6070', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,.05)' }
+        }
+      }
+    }
+  });
+}
+
+function _updateSesiChart(examCode, results, totalSoal) {
+  const chart = sesiCharts[examCode];
+  if (!chart) return;
+  const bins = [0,0,0,0,0]; // 0-19, 20-39, 40-59, 60-79, 80-100
+  results.forEach(r => {
+    const s = r.score;
+    if (s < 20) bins[0]++;
+    else if (s < 40) bins[1]++;
+    else if (s < 60) bins[2]++;
+    else if (s < 80) bins[3]++;
+    else bins[4]++;
+  });
+  chart.data.datasets[0].data = bins;
+  chart.update('active');
 }
 
 // ══════════════════════════════════════
-// HASIL & EXPORT
+// HASIL PER SESI
 // ══════════════════════════════════════
 async function renderHasil() {
-  // Ambil dari Firestore
+  // Cleanup old real-time listeners
+  hasilListeners.forEach(u => u());
+  hasilListeners = [];
+
+  // Fetch fresh data
   try {
     const fsResults = await FSDb.getResults();
     if (fsResults.length) { APP.results = fsResults; DB.set('results', fsResults); }
@@ -3161,106 +3936,254 @@ async function renderHasil() {
     const fsExams = await FSDb.getExams();
     if (fsExams.length) { APP.exams = fsExams; DB.set('exams', fsExams); }
     else { APP.exams = DB.get('exams', []); }
-  } catch { APP.results = DB.get('results', []); APP.exams = DB.get('exams', []); }
+  } catch {
+    APP.results = DB.get('results', []);
+    APP.exams = DB.get('exams', []);
+  }
 
-  const filter = document.getElementById('filterExam');
-  const cur = filter.value;
-  filter.innerHTML = '<option value="">Semua Ujian</option>';
-  APP.exams.forEach(e => {
-    const opt = document.createElement('option');
-    opt.value = e.code; opt.textContent = e.title;
-    filter.appendChild(opt);
-  });
-  filter.value = cur;
+  const container = document.getElementById('hasilPerSesi');
 
-  const filtered = cur ? APP.results.filter(r => r.examCode === cur) : APP.results;
-  // Sort by score desc
-  filtered.sort((a,b) => b.score - a.score);
-  const tbody = document.getElementById('hasilTable');
-
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:2rem">Belum ada data.</td></tr>';
-    document.getElementById('hasilStats').style.display = 'none';
+  if (!APP.exams.length) {
+    container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3)">Belum ada ujian dibuat.</div>';
+    document.getElementById('hasilSummaryStrip').style.display = 'none';
     return;
   }
 
-  tbody.innerHTML = filtered.map((r,i) => {
+  // Sort: aktif dulu, lalu selesai (terbaru di atas berdasarkan createdAt)
+  const sortedExams = [...APP.exams].sort((a, b) => {
+    if (a.status === 'aktif' && b.status !== 'aktif') return -1;
+    if (b.status === 'aktif' && a.status !== 'aktif') return 1;
+    return 0;
+  });
+
+  // Global summary
+  const allScores = APP.results.map(r => r.score);
+  const globalAvg = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : '—';
+  document.getElementById('hssTotal').textContent = new Set(APP.results.map(r=>r.nis)).size;
+  document.getElementById('hssAvg').textContent = globalAvg;
+  document.getElementById('hssSesi').textContent = APP.exams.length;
+  document.getElementById('hasilSummaryStrip').style.display = 'grid';
+
+  // Render per-exam cards
+  container.innerHTML = sortedExams.map(exam => {
+    const isAktif = exam.status === 'aktif';
+    const results = APP.results.filter(r => r.examCode === exam.code).sort((a,b) => b.score - a.score);
+    return _buildSesiHasilCard(exam, results, isAktif);
+  }).join('');
+
+  // Setup real-time listeners for active exams
+  sortedExams.filter(e => e.status === 'aktif').forEach(exam => {
+    const u = FSDb.listenResults(exam.code, (results) => {
+      const sorted = [...results].sort((a,b) => b.score - a.score);
+      _updateSesiHasilCard(exam, sorted);
+    });
+    hasilListeners.push(u);
+  });
+}
+
+function _escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _buildSesiHasilCard(exam, results, isAktif, collapsed = false) {
+  const scores = results.map(r => r.score);
+  const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : '—';
+  const highest = scores.length ? Math.max(...scores) : '—';
+  const lowest  = scores.length ? Math.min(...scores) : '—';
+  const statusBadge = isAktif
+    ? `<span class="badge badge-green" style="font-size:.65rem">● Aktif</span>`
+    : `<span class="badge badge-gray"  style="font-size:.65rem">■ Selesai</span>`;
+  const safeTitle = _escHtml(exam.title);
+  const safeMapel = _escHtml(exam.mapel);
+  const safeCode  = _escHtml(exam.code);
+
+  return `
+  <div class="sesi-hasil-card ${isAktif ? 'aktif' : ''}" id="shc-${safeCode}">
+    <div class="shc-head" onclick="toggleSesiCard('${exam.code}')">
+      <div style="flex:1;min-width:0">
+        <div class="shc-title-row">
+          ${isAktif ? '<span class="live-pulse"></span>' : ''}
+          <span class="shc-title">${safeTitle}</span>
+          ${statusBadge}
+          <span class="badge badge-blue mono" style="font-size:.62rem">${safeCode}</span>
+        </div>
+        <div class="shc-meta">${safeMapel} · ${exam.questions.length} soal · ${exam.dur} menit${exam.createdAt ? ' · ' + _escHtml(exam.createdAt) : ''}</div>
+      </div>
+      <span class="shc-toggle ${collapsed ? '' : 'open'}" id="shc-toggle-${safeCode}">▼</span>
+    </div>
+
+    <div class="shc-stats" id="shc-stats-${safeCode}">
+      <div class="shc-stat">
+        <span class="shc-stat-num" style="color:var(--accent)" id="shcs-peserta-${safeCode}">${results.length}</span>
+        <span class="shc-stat-lbl">Peserta</span>
+      </div>
+      <div class="shc-stat">
+        <span class="shc-stat-num" style="color:var(--orange)" id="shcs-avg-${safeCode}">${avg}</span>
+        <span class="shc-stat-lbl">Rata-rata</span>
+      </div>
+      <div class="shc-stat">
+        <span class="shc-stat-num" style="color:var(--green)" id="shcs-high-${safeCode}">${highest}</span>
+        <span class="shc-stat-lbl">Tertinggi</span>
+      </div>
+      <div class="shc-stat">
+        <span class="shc-stat-num" style="color:var(--red)" id="shcs-low-${safeCode}">${lowest}</span>
+        <span class="shc-stat-lbl">Terendah</span>
+      </div>
+    </div>
+
+    <div class="shc-body ${collapsed ? 'collapsed' : ''}" id="shc-body-${safeCode}">
+      <div id="shc-table-${safeCode}" style="overflow-x:auto">
+        ${_buildHasilTable(results)}
+      </div>
+      <div class="shc-actions">
+        <button class="btn btn-green btn-sm" onclick="exportCSV('${exam.code}')">📥 Export CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="exportPDF('${exam.code}')">📄 Export PDF</button>
+        ${isAktif ? `<button class="btn btn-danger btn-xs" style="margin-left:auto" onclick="toggleExamStatus('${exam.code}')">Tutup Sesi</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function _buildHasilTable(results) {
+  if (!results.length) {
+    return '<div class="shc-empty">Belum ada peserta yang menyelesaikan ujian ini.</div>';
+  }
+  const rows = results.map((r, i) => {
     const scoreColor = r.score>=80?'var(--green)':r.score>=60?'var(--accent)':r.score>=40?'var(--yellow)':'var(--red)';
-    const vBadge = r.violations>0 ? `<span class="badge badge-red">⚠ ${r.violations}</span>` : `<span class="badge badge-green">✓</span>`;
-    const rankMedal = i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':'';
+    const vBadge = r.violations>0
+      ? `<span class="badge badge-red">⚠ ${r.violations}</span>`
+      : `<span class="badge badge-green">✓</span>`;
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    const barW = Math.max(4, r.score);
+    const safeName = _escHtml(r.name);
+    const safeNIS  = _escHtml(r.nis);
     return `<tr>
-      <td>${rankMedal}${i+1}</td>
-      <td><strong>${r.name}</strong></td>
-      <td class="mono" style="font-size:.78rem">${r.nis}</td>
-      <td>${r.examTitle || '—'}</td>
-      <td><strong style="color:${scoreColor};font-family:'Space Mono',monospace">${r.score}</strong></td>
-      <td style="color:var(--green)">${r.correct}</td>
-      <td style="color:var(--red)">${r.wrong}</td>
-      <td class="mono" style="font-size:.75rem">${r.duration}</td>
+      <td style="font-size:.82rem;width:40px;text-align:center"><span class="rank-medal">${medal}</span></td>
+      <td><strong>${safeName}</strong></td>
+      <td class="mono" style="font-size:.75rem;color:var(--text3)">${safeNIS}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <strong style="color:${scoreColor};font-family:'Space Mono',monospace;font-size:.95rem">${r.score}</strong>
+          <span class="score-bar-mini" style="width:${barW * 0.6}px;background:${scoreColor}"></span>
+        </div>
+      </td>
+      <td style="color:var(--green);font-size:.82rem">${r.correct}</td>
+      <td style="color:var(--red);font-size:.82rem">${r.wrong}</td>
+      <td class="mono" style="font-size:.72rem;color:var(--text3)">${_escHtml(r.duration)}</td>
       <td>${vBadge}</td>
     </tr>`;
   }).join('');
 
-  const scores = filtered.map(r=>r.score);
-  document.getElementById('hsAvg').textContent = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
-  document.getElementById('hsTertinggi').textContent = Math.max(...scores);
-  document.getElementById('hsTerendah').textContent = Math.min(...scores);
-  document.getElementById('hasilStats').style.display = 'grid';
+  return `<table>
+    <thead><tr>
+      <th style="width:40px">No</th>
+      <th>Nama</th>
+      <th>NIS</th>
+      <th>Nilai</th>
+      <th>Benar</th>
+      <th>Salah</th>
+      <th>Waktu</th>
+      <th>Integritas</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
-function exportCSV() {
-  const filter = document.getElementById('filterExam').value;
-  const data = filter ? APP.results.filter(r=>r.examCode===filter) : APP.results;
+function _updateSesiHasilCard(exam, results) {
+  const safeCode = _escHtml(exam.code);
+  const scores = results.map(r=>r.score);
+  const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : '—';
+  const highest = scores.length ? Math.max(...scores) : '—';
+  const lowest  = scores.length ? Math.min(...scores) : '—';
+  const pEl = document.getElementById(`shcs-peserta-${safeCode}`);
+  const aEl = document.getElementById(`shcs-avg-${safeCode}`);
+  const hEl = document.getElementById(`shcs-high-${safeCode}`);
+  const lEl = document.getElementById(`shcs-low-${safeCode}`);
+  if (pEl) pEl.textContent = results.length;
+  if (aEl) aEl.textContent = avg;
+  if (hEl) hEl.textContent = highest;
+  if (lEl) lEl.textContent = lowest;
+  const tEl = document.getElementById(`shc-table-${safeCode}`);
+  if (tEl) tEl.innerHTML = _buildHasilTable(results);
+}
+
+function toggleSesiCard(code) {
+  const body = document.getElementById(`shc-body-${code}`);
+  const tog  = document.getElementById(`shc-toggle-${code}`);
+  if (!body) return;
+  const isCollapsed = body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', !isCollapsed);
+  if (tog) tog.classList.toggle('open', isCollapsed);
+}
+
+// ── Export per sesi ──
+function exportCSV(examCode) {
+  const data = examCode
+    ? APP.results.filter(r => r.examCode === examCode)
+    : APP.results;
   if (!data.length) { toast('Tidak ada data untuk diekspor', 'error'); return; }
 
+  const examName = examCode
+    ? (APP.exams.find(e=>e.code===examCode)?.title || examCode)
+    : 'Semua Ujian';
+
   const header = 'No,Nama,NIS,Ujian,Kode,Nilai,Benar,Salah,Kosong,Durasi,Pelanggaran,Tanggal';
-  const rows = data.map((r,i) =>
-    `${i+1},"${r.name}","${r.nis}","${r.examTitle||''}","${r.examCode}",${r.score},${r.correct},${r.wrong},${r.skip},"${r.duration}",${r.violations},"${r.date}"`
+  const rows = data.sort((a,b)=>b.score-a.score).map((r,i) =>
+    `${i+1},"${r.name}","${r.nis}","${r.examTitle||''}","${r.examCode}",${r.score},${r.correct},${r.wrong},${r.skip||0},"${r.duration}",${r.violations},"${r.date||''}"`
   );
   const csv = [header, ...rows].join('\n');
   const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const fname = `hasil_ujian_${new Date().toISOString().slice(0,10)}.csv`;
-  a.href=url; a.download=fname; a.click();
+  const safe = examName.replace(/[^a-zA-Z0-9]/g,'_').substring(0,30);
+  a.href=url; a.download=`nilai_${safe}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   URL.revokeObjectURL(url);
-  toast(`${data.length} data diekspor ke CSV ✓`, 'success');
+  toast(`${data.length} data diekspor ✓`, 'success');
 }
 
-function exportPDF() {
-  const filter = document.getElementById('filterExam').value;
-  const data = filter ? APP.results.filter(r=>r.examCode===filter) : APP.results;
+function exportCSVAll() { exportCSV(null); }
+
+function exportPDF(examCode) {
+  const data = examCode
+    ? APP.results.filter(r => r.examCode === examCode)
+    : APP.results;
   if (!data.length) { toast('Tidak ada data untuk diekspor', 'error'); return; }
 
-  const examName = filter ? (APP.exams.find(e=>e.code===filter)?.title || filter) : 'Semua Ujian';
-  const scores = data.map(r=>r.score);
-  const avg = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  const examName = examCode
+    ? (APP.exams.find(e=>e.code===examCode)?.title || examCode)
+    : 'Semua Ujian';
+  const scores  = data.map(r=>r.score);
+  const avg     = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  const sorted  = [...data].sort((a,b)=>b.score-a.score);
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rekap Nilai</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rekap Nilai — ${examName}</title>
   <style>
     body{font-family:Arial,sans-serif;margin:2cm;color:#1a1a2e;font-size:12px}
-    h1{font-size:18px;margin-bottom:4px} .sub{color:#666;margin-bottom:16px;font-size:11px}
+    h1{font-size:18px;margin-bottom:4px}.sub{color:#666;margin-bottom:16px;font-size:11px}
     table{width:100%;border-collapse:collapse;margin-top:12px}
     th{background:#1a2230;color:#fff;padding:8px 10px;text-align:left;font-size:10px}
     td{padding:7px 10px;border-bottom:1px solid #ddd;font-size:11px}
     tr:nth-child(even) td{background:#f8f9fa}
-    .summary{display:flex;gap:16px;margin-bottom:16px}
-    .sbox{background:#f0f4f8;border:1px solid #ddd;border-radius:6px;padding:10px 14px;text-align:center;flex:1}
-    .snum{font-size:20px;font-weight:bold;display:block}
+    .summary{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+    .sbox{background:#f0f4f8;border:1px solid #ddd;border-radius:6px;padding:10px 14px;text-align:center;flex:1;min-width:80px}
+    .snum{font-size:18px;font-weight:bold;display:block}
     .slbl{font-size:10px;color:#666}
     @media print{body{margin:1cm}}
   </style></head><body>
-  <h1>📋 Rekap Nilai Ujian</h1>
-  <div class="sub">Ujian: ${examName} · Dicetak: ${new Date().toLocaleString('id-ID')}</div>
+  <h1>📋 Rekap Nilai — ${examName}</h1>
+  <div class="sub">Dicetak: ${new Date().toLocaleString('id-ID')} · ${data.length} peserta</div>
   <div class="summary">
     <div class="sbox"><span class="snum">${data.length}</span><span class="slbl">Peserta</span></div>
     <div class="sbox"><span class="snum">${avg}</span><span class="slbl">Rata-rata</span></div>
     <div class="sbox"><span class="snum">${Math.max(...scores)}</span><span class="slbl">Tertinggi</span></div>
     <div class="sbox"><span class="snum">${Math.min(...scores)}</span><span class="slbl">Terendah</span></div>
   </div>
-  <table><thead><tr><th>No</th><th>Nama</th><th>NIS</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Kosong</th><th>Durasi</th><th>Pelanggaran</th></tr></thead>
-  <tbody>${data.map((r,i)=>`<tr><td>${i+1}</td><td><b>${r.name}</b></td><td>${r.nis}</td><td><b style="color:${r.score>=75?'#16a34a':'#dc2626'}">${r.score}</b></td><td>${r.correct}</td><td>${r.wrong}</td><td>${r.skip}</td><td>${r.duration}</td><td>${r.violations>0?'⚠ '+r.violations:'✓'}</td></tr>`).join('')}</tbody>
-  </table>
+  <table><thead><tr><th>No</th><th>Nama</th><th>NIS</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Kosong</th><th>Durasi</th><th>Integritas</th></tr></thead>
+  <tbody>${sorted.map((r,i)=>`<tr><td>${i+1}</td><td><b>${r.name}</b></td><td>${r.nis}</td>
+    <td><b style="color:${r.score>=75?'#16a34a':'#dc2626'}">${r.score}</b></td>
+    <td>${r.correct}</td><td>${r.wrong}</td><td>${r.skip||0}</td><td>${r.duration}</td>
+    <td>${r.violations>0?'⚠ '+r.violations:'✓'}</td></tr>`).join('')}
+  </tbody></table>
   <script>window.onload=()=>{window.print()}<\/script></body></html>`;
 
   const w = window.open('','_blank');
@@ -3279,6 +4202,10 @@ async function joinExam() {
   if (!nis)  { toast('NIS harus diisi!', 'error'); return; }
   if (!code) { toast('Kode ujian harus diisi!', 'error'); return; }
 
+  const btn = document.querySelector('#siswaForm .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Mencari ujian...'; }
+  const _restoreBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Mulai Ujian →'; } };
+
   // Try localStorage first, fallback to Firestore
   let exam = DB.get('exams', []).find(e => e.code === code);
   if (!exam) {
@@ -3294,12 +4221,12 @@ async function joinExam() {
     } catch(e) { console.warn('FS joinExam:', e); }
   }
 
-  if (!exam) { toast('Kode ujian tidak ditemukan!', 'error'); return; }
-  if (exam.status !== 'aktif') { toast('Ujian ini sudah ditutup!', 'error'); return; }
+  if (!exam) { _restoreBtn(); toast('Kode ujian tidak ditemukan!', 'error'); return; }
+  if (exam.status !== 'aktif') { _restoreBtn(); toast('Ujian ini sudah ditutup!', 'error'); return; }
 
   // Check if already done (local + Firestore)
   const alreadyDone = DB.get('results',[]).find(r=>r.examCode===code && r.nis===nis);
-  if (alreadyDone) { toast('Kamu sudah mengikuti ujian ini!', 'error'); return; }
+  if (alreadyDone) { _restoreBtn(); toast('Kamu sudah mengikuti ujian ini!', 'error'); return; }
 
   APP.examCfg = { name, nis, code, exam };
   APP.role = 'siswa';
@@ -3313,6 +4240,13 @@ async function joinExam() {
   APP.secActive = exam.sec > 0;
   APP.startTime = Date.now();
   APP.reviewMode = false;
+  APP.suspended = false;
+
+  // Catat peserta yang sedang login / mengerjakan
+  FSDb.saveParticipant({
+    name, nis, examCode: code, examTitle: exam.title,
+    joinedAt: Date.now(), status: 'mengerjakan', score: null
+  });
 
   isSubmitting = false;
   lastViolationTime = 0;
@@ -3330,6 +4264,8 @@ async function joinExam() {
   initSecurity();
   initBackButtonGuard();
   initOverlayDetection();
+  // Restore button sebelum showScreen (form sudah tidak terlihat)
+  _restoreBtn();
   showScreen('exam-screen');
 }
 
@@ -3409,7 +4345,6 @@ function updateLiveScore() {
     }
   });
   const answered = correct + wrong;
-  const skipped = total - answered;
   const estimatedScore = answered > 0 ? Math.round((correct / total) * 100) : 0;
   const scoreColor = estimatedScore >= 80 ? 'var(--green)' : estimatedScore >= 60 ? 'var(--accent)' : estimatedScore >= 40 ? 'var(--yellow)' : (answered > 0 ? 'var(--red)' : 'var(--accent)');
 
@@ -3464,11 +4399,13 @@ function confirmEnd() {
 
 function startTimer() {
   clearInterval(APP.timerInt);
+  if (APP.timeLeft <= 0) { submitExam(); return; }
   APP.timerInt = setInterval(() => {
     APP.timeLeft--;
     const m = Math.floor(APP.timeLeft/60).toString().padStart(2,'0');
     const s = (APP.timeLeft%60).toString().padStart(2,'0');
     const el = document.getElementById('timerVal');
+    if (!el) { clearInterval(APP.timerInt); return; }
     el.textContent = `${m}:${s}`;
     el.className = 'timer-val';
     if (APP.timeLeft <= 300) el.classList.add('warn');
@@ -3521,6 +4458,14 @@ async function submitExam() {
   // Save to Firestore (non-blocking)
   FSDb.saveResult(result).catch(e => console.warn('FS saveResult error:', e));
 
+  // Update participant status to selesai + simpan nilai
+  FSDb.saveParticipant({
+    name: APP.examCfg.name, nis: APP.examCfg.nis,
+    examCode: APP.examCfg.code, examTitle: APP.examCfg.exam.title,
+    joinedAt: APP.startTime, status: 'selesai', score,
+    finishedAt: Date.now()
+  }).catch(() => {});
+
   showResult(result);
 }
 
@@ -3548,18 +4493,27 @@ function showResult(r) {
   document.getElementById('rSkip').textContent = r.skip;
 
   // Review list
-  const keys=['A','B','C','D'];
+  const keys = ['A','B','C','D'];
   const scroll = document.getElementById('reviewScroll');
-  scroll.innerHTML = r.questions.map((q,i) => {
-    const isOk = r.answers[i]===q.ans;
-    const isEmpty = r.answers[i]===null;
-    return `<div class="rev-item ${isOk?'ok':'ng'}">
-      <div class="rev-q">Soal ${i+1}: ${q.q.substring(0,70)}${q.q.length>70?'...':''}</div>
+  scroll.innerHTML = (r.questions || []).map((q, i) => {
+    const ans = r.answers ? r.answers[i] : null;
+    const isEmpty = ans === null || ans === undefined;
+    const isOk = !isEmpty && ans === q.ans;
+    // guard opts access
+    const chosenText = (!isEmpty && q.opts && q.opts[ans] !== undefined)
+      ? keys[ans] + '. ' + _escHtml(q.opts[ans])
+      : '(kosong)';
+    const correctText = (q.opts && q.opts[q.ans] !== undefined)
+      ? keys[q.ans] + '. ' + _escHtml(q.opts[q.ans])
+      : '—';
+    const qText = _escHtml((q.q || '').substring(0, 70)) + ((q.q||'').length > 70 ? '...' : '');
+    return `<div class="rev-item ${isOk ? 'ok' : 'ng'}">
+      <div class="rev-q">Soal ${i+1}: ${qText}</div>
       <div class="rev-ans">
-        <span class="rev-badge ${isOk?'rb-ok':'rb-ng'}">${isOk?'✓':'✗'}</span>
+        <span class="rev-badge ${isOk ? 'rb-ok' : 'rb-ng'}">${isOk ? '✓' : '✗'}</span>
         <span style="font-size:.8rem;color:var(--text2)">
-          Jawabanmu: <strong style="color:var(--text)">${isEmpty?'(kosong)':keys[r.answers[i]]+'. '+q.opts[r.answers[i]]}</strong>
-          ${!isOk?`<br>Jawaban benar: <strong style="color:var(--green)">${keys[q.ans]}. ${q.opts[q.ans]}</strong>`:''}
+          Jawabanmu: <strong style="color:var(--text)">${chosenText}</strong>
+          ${!isOk ? `<br>Jawaban benar: <strong style="color:var(--green)">${correctText}</strong>` : ''}
         </span>
       </div>
     </div>`;
@@ -3574,6 +4528,8 @@ function goToDashboard() {
     showScreen('guru-screen');
     refreshDashboard();
   } else {
+    APP.role = null;
+    APP.examCfg = null;
     document.getElementById("bottomNav").classList.remove("show");
     showScreen('login-screen');
     backToRole();
@@ -3629,11 +4585,15 @@ function stopSecurity() {
   document.removeEventListener('visibilitychange', handleVisibility);
   window.removeEventListener('blur', handleBlur);
   if (violationCountdown) { clearInterval(violationCountdown); violationCountdown = null; }
-  // Close any open overlay
+  // Close all overlays
   document.getElementById('secOverlay').classList.remove('show');
   document.getElementById('warnCounter').classList.remove('show');
   document.getElementById('overlayWarning').classList.remove('show');
   document.getElementById('exitExamModal').classList.remove('show');
+  document.getElementById('suspendedOverlay').classList.remove('show');
+  // Cleanup permission listener
+  if (_permListener) { try { _permListener(); } catch(e){} _permListener = null; }
+  APP.suspended = false;
   // Stop back button guard & overlay detection
   stopBackButtonGuard();
   stopOverlayDetection();
@@ -3673,7 +4633,23 @@ function forceExitExam() {
   clearInterval(APP.timerInt);
   APP.timerInt = null;
   isSubmitting = false;
+  // Update status peserta ke 'keluar' di Firestore
+  if (APP.examCfg) {
+    FSDb.saveParticipant({
+      name: APP.examCfg.name, nis: APP.examCfg.nis,
+      examCode: APP.examCfg.code, examTitle: APP.examCfg.exam.title,
+      joinedAt: APP.startTime || Date.now(), status: 'keluar', score: null,
+      exitedAt: Date.now()
+    }).catch(() => {});
+    // Hapus permission request jika ada
+    FSDb.savePermissionRequest({
+      examCode: APP.examCfg.code, nis: APP.examCfg.nis,
+      name: APP.examCfg.name, status: 'cancelled',
+      requestedAt: Date.now(), violations: APP.violations
+    }).catch(() => {});
+  }
   APP.role = null;
+  APP.examCfg = null;
   document.getElementById('bottomNav').classList.remove('show');
   showScreen('login-screen');
   backToRole();
@@ -3756,6 +4732,9 @@ function handleBlur() {
 
 function triggerViolation(msg) {
   if (!APP.secActive) return;
+  // Jangan proses jika ujian sedang suspended atau sudah submitting
+  if (APP.suspended) return;
+  if (isSubmitting) return;
   // Cooldown 1 detik untuk mencegah double violation dari blur+visibility
   const now = Date.now();
   if (now - lastViolationTime < 1000) return;
@@ -3768,20 +4747,17 @@ function triggerViolation(msg) {
   document.getElementById('secMsg').textContent = msg + ' Pelanggaran ke-' + APP.violations + ' dari ' + APP.maxViolations + '.';
 
   if (APP.violations >= APP.maxViolations) {
-    // Cegah double trigger, tapi jangan set isSubmitting=true di sini
-    // karena submitExam() sudah punya guard sendiri
-    if (isSubmitting) return;
-    // Bersihkan countdown interval yang mungkin sedang berjalan
     if (violationCountdown) { clearInterval(violationCountdown); violationCountdown = null; }
+    // Tunjukkan pesan sebentar lalu suspend
     document.getElementById('secCount').textContent = '⚠';
     document.getElementById('secBarFill').style.width = '0%';
     overlay.classList.add('show');
-    overlay.querySelector('.sec-title').textContent = 'Ujian Dihentikan!';
-    overlay.querySelector('.sec-msg').textContent = 'Batas pelanggaran tercapai. Ujian akan di-submit otomatis.';
+    overlay.querySelector('.sec-title').textContent = 'Batas Pelanggaran!';
+    overlay.querySelector('.sec-msg').textContent = 'Ujian ditangguhkan. Kamu perlu meminta izin guru untuk melanjutkan.';
     setTimeout(() => {
       overlay.classList.remove('show');
-      submitExam(); // submitExam punya guard isSubmitting sendiri
-    }, 3000);
+      suspendExam(msg);
+    }, 2500);
     return;
   }
 
@@ -3809,13 +4785,114 @@ function triggerViolation(msg) {
 function updateWarnCounter() {
   const el = document.getElementById('warnCounter');
   if (!APP.secActive) { el.classList.remove('show'); return; }
-  // Selalu update teks terlebih dahulu
   el.innerHTML = `⚠ Pelanggaran: <span id="warnNum">${APP.violations}</span>/${APP.maxViolations}`;
-  if (APP.violations > 0) {
-    el.classList.add('show');
-  } else {
-    el.classList.remove('show');
+  if (APP.violations > 0) el.classList.add('show');
+  else el.classList.remove('show');
+}
+
+// ══════════════════════════════════════
+// SUSPEND / RESUME EXAM
+// ══════════════════════════════════════
+let _permListener = null;
+
+function suspendExam(lastMsg) {
+  if (APP.suspended) return;
+  APP.suspended = true;
+
+  // Pause timer
+  clearInterval(APP.timerInt);
+  APP.timerInt = null;
+
+  // Update participant status ke suspended
+  if (APP.examCfg) {
+    FSDb.saveParticipant({
+      name: APP.examCfg.name, nis: APP.examCfg.nis,
+      examCode: APP.examCfg.code, examTitle: APP.examCfg.exam.title,
+      joinedAt: APP.startTime || Date.now(),
+      status: 'suspended', score: null,
+      suspendedAt: Date.now(), violations: APP.violations
+    }).catch(() => {});
   }
+
+  // Reset status ijin
+  _setPermStatus('idle', 'Tekan tombol untuk meminta izin');
+  document.getElementById('btnRequestPerm').disabled = false;
+  document.getElementById('btnRequestPerm').textContent = '🙋 Minta Izin Lanjut Ujian';
+
+  // Update info di overlay
+  document.getElementById('suspViolCount').textContent = `⚠ ${APP.violations} pelanggaran`;
+  document.getElementById('suspExamName').textContent = APP.examCfg?.exam?.title || '—';
+
+  // Tampilkan overlay
+  document.getElementById('suspendedOverlay').classList.add('show');
+  updateWarnCounter();
+}
+
+function resumeExam() {
+  if (!APP.suspended) return;
+  APP.suspended = false;
+
+  // Reset violations
+  APP.violations = 0;
+  updateWarnCounter();
+
+  // Sembunyikan overlay
+  document.getElementById('suspendedOverlay').classList.remove('show');
+
+  // Lanjut timer
+  startTimer();
+
+  // Bersihkan listener permission
+  if (_permListener) { try { _permListener(); } catch(e){} _permListener = null; }
+
+  toast('✅ Izin diberikan! Ujian dilanjutkan.', 'success');
+}
+
+async function requestPermission() {
+  if (!APP.examCfg) return;
+  const btn = document.getElementById('btnRequestPerm');
+  btn.disabled = true;
+  btn.textContent = '⏳ Mengirim permintaan...';
+
+  const req = {
+    examCode: APP.examCfg.code,
+    examTitle: APP.examCfg.exam.title,
+    name: APP.examCfg.name,
+    nis: APP.examCfg.nis,
+    violations: APP.violations,
+    requestedAt: Date.now(),
+    status: 'pending'
+  };
+
+  await FSDb.savePermissionRequest(req);
+  _setPermStatus('pending', 'Menunggu persetujuan guru...');
+  btn.textContent = '⏳ Menunggu jawaban guru...';
+
+  // Mulai listen respons guru
+  if (_permListener) { try { _permListener(); } catch(e){} }
+  _permListener = FSDb.listenPermissionRequest(APP.examCfg.code, APP.examCfg.nis, (data) => {
+    if (!data) return;
+    if (data.status === 'approved') {
+      _setPermStatus('approved', '✅ Disetujui! Melanjutkan ujian...');
+      setTimeout(() => resumeExam(), 1200);
+    } else if (data.status === 'denied') {
+      _setPermStatus('denied', '❌ Ditolak guru. Ujian diakhiri.');
+      btn.textContent = '📋 Ujian Diakhiri';
+      setTimeout(() => {
+        if (_permListener) { try { _permListener(); } catch(e){} _permListener = null; }
+        document.getElementById('suspendedOverlay').classList.remove('show');
+        APP.suspended = false;
+        submitExam();
+      }, 2000);
+    }
+  });
+}
+
+function _setPermStatus(type, text) {
+  const el = document.getElementById('permStatus');
+  const textEl = document.getElementById('permStatusText');
+  el.className = `perm-status ${type}`;
+  if (textEl) textEl.textContent = text;
 }
 
 // ══════════════════════════════════════
@@ -3824,6 +4901,7 @@ function updateWarnCounter() {
 let qrStream = null;
 let qrAnimFrame = null;
 let qrActive = false;
+let qrScanAttempts = 0;
 
 function openQRScan() {
   const modal = document.getElementById('qrScanModal');
@@ -3831,6 +4909,8 @@ function openQRScan() {
   const errMsg = document.getElementById('qrErrorMsg');
   detected.classList.remove('show');
   errMsg.classList.remove('show');
+  errMsg.textContent = '';
+  qrScanAttempts = 0;
   modal.classList.add('open');
   startCamera();
 }
@@ -3843,60 +4923,134 @@ function closeQRScan() {
 async function startCamera() {
   const video = document.getElementById('qrVideo');
   const errMsg = document.getElementById('qrErrorMsg');
+
+  // Pastikan jsQR sudah loaded
+  if (typeof jsQR === 'undefined') {
+    errMsg.textContent = 'Library scanner belum siap, coba lagi.';
+    errMsg.classList.add('show');
+    return;
+  }
+
   qrActive = true;
+  stopCamera(false); // stop old stream tapi jangan set qrActive=false
+
   try {
-    qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
-    });
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280, min: 320 },
+        height: { ideal: 720, min: 240 }
+      }
+    };
+    qrStream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = qrStream;
-    await video.play();
-    // Mulai tick setelah video siap play
-    video.addEventListener('playing', function onPlaying() {
-      video.removeEventListener('playing', onPlaying);
-      tickQR();
+    video.setAttribute('playsinline', true);
+    video.setAttribute('muted', true);
+
+    // Tunggu metadata & coba play
+    await new Promise((resolve, reject) => {
+      const onMeta = () => { video.removeEventListener('loadedmetadata', onMeta); resolve(); };
+      video.addEventListener('loadedmetadata', onMeta);
+      video.play().catch(reject);
+      // Timeout fallback
+      setTimeout(resolve, 3000);
     });
-    // Fallback: jika 'playing' tidak fired, coba setelah loadeddata
-    video.addEventListener('loadeddata', function onLoaded() {
-      video.removeEventListener('loadeddata', onLoaded);
-      if (qrActive && !qrAnimFrame) tickQR();
-    }, { once: true });
+
+    // Mulai tick setelah video aktif
+    _waitAndTick(video);
+
   } catch(e) {
-    errMsg.textContent = 'Kamera tidak bisa diakses. Pastikan izin kamera sudah diberikan.';
+    qrActive = false;
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      errMsg.textContent = 'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser.';
+    } else if (e.name === 'NotFoundError') {
+      errMsg.textContent = 'Tidak ada kamera yang ditemukan di perangkat ini.';
+    } else if (e.name === 'NotReadableError') {
+      errMsg.textContent = 'Kamera sedang digunakan aplikasi lain.';
+    } else {
+      errMsg.textContent = 'Kamera tidak bisa diakses: ' + (e.message || e.name || 'Unknown error');
+    }
     errMsg.classList.add('show');
   }
 }
 
-function stopCamera() {
-  qrActive = false;
+function _waitAndTick(video) {
+  if (!qrActive) return;
+  // Jika video sudah punya dimensi, langsung tick
+  if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+    tickQR();
+    return;
+  }
+  // Coba lagi setelah 100ms (maks 50x = 5 detik)
+  qrScanAttempts++;
+  if (qrScanAttempts > 50) {
+    const errMsg = document.getElementById('qrErrorMsg');
+    errMsg.textContent = 'Kamera lambat merespons. Tutup dan coba lagi.';
+    errMsg.classList.add('show');
+    return;
+  }
+  setTimeout(() => _waitAndTick(video), 100);
+}
+
+function stopCamera(setInactive = true) {
+  if (setInactive) qrActive = false;
   if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
-  if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
-  const video = document.getElementById('qrVideo');
-  video.srcObject = null;
+  if (qrStream) {
+    qrStream.getTracks().forEach(t => t.stop());
+    qrStream = null;
+  }
+  if (setInactive) {
+    const video = document.getElementById('qrVideo');
+    if (video) { video.srcObject = null; video.load(); }
+  }
 }
 
 function tickQR() {
   if (!qrActive) return;
   const video = document.getElementById('qrVideo');
   const canvas = document.getElementById('qrCanvas');
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-    qrAnimFrame = requestAnimationFrame(tickQR); return;
-  }
-  const size = Math.min(video.videoWidth, video.videoHeight);
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const ox = (video.videoWidth  - size) / 2;
-  const oy = (video.videoHeight - size) / 2;
-  ctx.drawImage(video, ox, oy, size, size, 0, 0, size, size);
-  const imgData = ctx.getImageData(0, 0, size, size);
-  const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
-  if (code && code.data) {
-    const raw = code.data.trim().toUpperCase();
-    // Ambil bagian kode saja (support jika QR berisi URL dengan kode di akhir)
-    const match = raw.match(/([A-Z0-9]{4,10})$/);
-    const kode = match ? match[1] : raw;
-    onQRDetected(kode);
+
+  // Cek apakah video masih aktif dan punya ukuran valid
+  if (!video || video.paused || video.ended || video.videoWidth === 0) {
+    qrAnimFrame = requestAnimationFrame(tickQR);
     return;
   }
+  if (video.readyState < 2) {
+    qrAnimFrame = requestAnimationFrame(tickQR);
+    return;
+  }
+
+  try {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const size = Math.min(vw, vh);
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ox = (vw - size) / 2;
+    const oy = (vh - size) / 2;
+    ctx.drawImage(video, ox, oy, size, size, 0, 0, size, size);
+    const imgData = ctx.getImageData(0, 0, size, size);
+
+    // Coba decode QR dengan dua mode inversi untuk coverage lebih baik
+    const code = jsQR(imgData.data, imgData.width, imgData.height, {
+      inversionAttempts: 'attemptBoth'
+    });
+
+    if (code && code.data && code.data.trim()) {
+      const raw = code.data.trim().toUpperCase();
+      // Ekstrak kode: bisa berupa kode langsung atau URL yang mengandung kode
+      const match = raw.match(/([A-Z0-9]{4,10})(?:[^A-Z0-9]|$)/);
+      const kode = match ? match[1] : raw.replace(/[^A-Z0-9]/g, '').substring(0, 10);
+      if (kode && kode.length >= 4) {
+        onQRDetected(kode);
+        return;
+      }
+    }
+  } catch(e) {
+    // Ignore decode errors, keep scanning
+  }
+
   qrAnimFrame = requestAnimationFrame(tickQR);
 }
 
