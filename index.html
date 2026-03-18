@@ -1423,8 +1423,9 @@ td strong { color:var(--text); font-weight:600; }
   /* exam-screen dikelola via #exam-screen.active flex-chain — jangan dioverride */
   #exam-screen { height: 100dvh; overflow: hidden; }
 
-  /* ── Guru screen: dash-main harus scrollable dan tab-pane visible ── */
-  #guru-screen { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+  /* ── Guru screen: harus memenuhi viewport ── */
+  #guru-screen.active { height: 100dvh; height: 100vh; }
+  #guru-screen { overflow: hidden; display: flex; flex-direction: column; }
   #guru-screen .dash-layout { flex: 1; min-height: 0; overflow: hidden; }
   #guru-screen .dash-main {
     height: 100%;
