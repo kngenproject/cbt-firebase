@@ -1325,6 +1325,28 @@ td strong { color:var(--text); font-weight:600; }
   .bottom-nav { display: none !important; }
 }
 
+/* Swipe indicator dots */
+.swipe-dots {
+  display: none;
+  justify-content: center;
+  gap: .4rem;
+  padding: .5rem 0 .25rem;
+}
+@media (max-width: 900px) {
+  .swipe-dots { display: flex; }
+}
+.swipe-dot {
+  width: 6px; height: 6px;
+  border-radius: 99px;
+  background: var(--border2);
+  cursor: pointer;
+  transition: width .2s, background .2s;
+}
+.swipe-dot.active {
+  width: 18px;
+  background: var(--accent);
+}
+
 /* ════════════════════════════════
    RESPONSIVE — TABLET (≤ 900px)
 ════════════════════════════════ */
@@ -2618,6 +2640,15 @@ window.jsQR = function() { return null; };
     <!-- Main -->
     <main class="dash-main" id="dashMain">
 
+      <!-- Swipe indicator dots (mobile only) -->
+      <div class="swipe-dots" id="swipeDots">
+        <div class="swipe-dot active" onclick="switchPage('overview')" id="dot-overview"></div>
+        <div class="swipe-dot" onclick="switchPage('buat')"     id="dot-buat"></div>
+        <div class="swipe-dot" onclick="switchPage('upload')"   id="dot-upload"></div>
+        <div class="swipe-dot" onclick="switchPage('sesi')"     id="dot-sesi"></div>
+        <div class="swipe-dot" onclick="switchPage('hasil')"    id="dot-hasil"></div>
+      </div>
+
       <!-- ── OVERVIEW ── -->
       <div id="page-overview" class="tab-pane active">
         <div class="page-header">
@@ -3381,6 +3412,11 @@ function switchPage(p) {
     el.classList.toggle('active', el.dataset.page === p);
   });
   setBnav(p);
+  // Update swipe dots
+  PAGES.forEach(page => {
+    const dot = document.getElementById('dot-'+page);
+    if (dot) dot.classList.toggle('active', page === p);
+  });
   // Scroll ke atas saat ganti halaman
   const main = document.getElementById('dashMain');
   if (main) main.scrollTop = 0;
@@ -5435,6 +5471,45 @@ function toggleTheme() {
 
 // Set initial screen body class (login-screen is active by default in HTML)
 document.body.classList.add('screen-login');
+
+// ── Swipe gesture — kiri/kanan ganti halaman (dashMain) ──
+(function initSwipe() {
+  let startX = 0, startY = 0, startT = 0;
+  const MIN_X = 50, MAX_Y = 80, MAX_MS = 400;
+
+  function onTouchStart(e) {
+    if (!document.getElementById('guru-screen')?.classList.contains('active')) return;
+    const skip = e.target.closest('.table-wrap,.tabs,select,input,textarea,.num-grid,.opts');
+    if (skip) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startT = Date.now();
+  }
+
+  function onTouchEnd(e) {
+    if (!startX || !document.getElementById('guru-screen')?.classList.contains('active')) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    startX = 0;
+    if (Date.now() - startT > MAX_MS) return;
+    if (Math.abs(dx) < MIN_X || Math.abs(dy) > MAX_Y) return;
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    const cur = PAGES.find(p => document.getElementById('page-'+p)?.classList.contains('active')) || PAGES[0];
+    const idx = PAGES.indexOf(cur);
+    if (dx < 0 && idx < PAGES.length - 1) switchPage(PAGES[idx + 1]);
+    else if (dx > 0 && idx > 0) switchPage(PAGES[idx - 1]);
+  }
+
+  function attach() {
+    const main = document.getElementById('dashMain');
+    if (!main) return;
+    main.addEventListener('touchstart', onTouchStart, { passive: true });
+    main.addEventListener('touchend',   onTouchEnd,   { passive: true });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
 
 APP.uploadedSoal = DB.get('uploadedSoal', []);
 APP.exams = DB.get('exams', []);
