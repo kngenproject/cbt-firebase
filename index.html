@@ -2506,6 +2506,7 @@ window.jsQR = function() { return null; };
       <div class="qr-scan-hint">Arahkan kamera ke QR code yang ditampilkan guru</div>
       <div class="qr-detected" id="qrDetected">✓ Kode terdeteksi: <strong id="qrDetectedCode">—</strong></div>
       <div class="qr-error-msg" id="qrErrorMsg"></div>
+      <div id="qrDebug" style="font-size:.7rem;color:#8899aa;margin-top:.4rem;font-family:monospace;line-height:1.6;text-align:left"></div>
       <button class="btn btn-outline btn-sm" style="width:100%;margin-top:.6rem" onclick="startCamera()">🔄 Coba Lagi</button>
     </div>
   </div>
@@ -5322,31 +5323,32 @@ function stopCamera(setInactive = true) {
   if (video) { video.srcObject = null; if (setInactive) video.load(); }
 }
 
+let _dbgTick = 0;
 function tickQR() {
   if (!qrActive) return;
   const video  = document.getElementById('qrVideo');
   const canvas = document.getElementById('qrCanvas');
+  const dbg    = document.getElementById('qrDebug');
 
   // Video belum siap — tunggu frame berikutnya
   if (!video || video.readyState < 2 || video.videoWidth === 0 || video.ended) {
+    if (dbg) dbg.textContent = '⏳ Menunggu video... (readyState=' + (video?.readyState ?? '?') + ')';
     qrAnimFrame = requestAnimationFrame(tickQR); return;
   }
   // Video paused (iOS block) — coba resume
   if (video.paused) {
     video.play().catch(() => {});
+    if (dbg) dbg.textContent = '⏸ Video paused, mencoba resume...';
     qrAnimFrame = requestAnimationFrame(tickQR); return;
   }
 
   try {
     const vw = video.videoWidth, vh = video.videoHeight;
-    // Scan full frame tanpa crop — QR bisa di mana saja di frame
-    // Scale ke max 480px sisi terpanjang agar jsQR akurat tanpa terlalu berat
     const CAP   = 480;
     const scale = Math.min(1, CAP / Math.max(vw, vh));
     const cw    = Math.round(vw * scale);
     const ch    = Math.round(vh * scale);
 
-    // Hanya realokasi canvas jika ukuran berubah
     if (canvas.width !== cw || canvas.height !== ch) {
       canvas.width = cw; canvas.height = ch;
     }
@@ -5354,16 +5356,34 @@ function tickQR() {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(video, 0, 0, vw, vh, 0, 0, cw, ch);
     const img  = ctx.getImageData(0, 0, cw, ch);
+
+    // Cek jsQR tersedia
+    if (typeof jsQR !== 'function') {
+      if (dbg) dbg.innerHTML = '❌ jsQR tidak ter-load (CDN gagal?)';
+      qrAnimFrame = setTimeout(() => { qrAnimFrame = requestAnimationFrame(tickQR); }, 50);
+      return;
+    }
+
     const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+
+    _dbgTick++;
+    if (dbg && _dbgTick % 10 === 0) {
+      dbg.innerHTML = `📷 x → canvas x<br>` +
+        (code ? `✅ jsQR: ${code.data}` : '🔍 Belum terdeteksi...');
+    }
+
     if (code?.data?.trim()) {
       const raw   = code.data.trim().toUpperCase();
       const match = raw.match(/([A-Z0-9]{4,10})(?:[^A-Z0-9]|$)/);
       const kode  = match ? match[1] : raw.replace(/[^A-Z0-9]/g, '').substring(0, 10);
+      if (dbg) dbg.innerHTML = `✅ jsQR: ${raw} → kode: ${kode}`;
       if (kode && kode.length >= 4) { onQRDetected(kode); return; }
+      if (dbg) dbg.innerHTML += '<br>⚠️ Kode terlalu pendek atau tidak valid';
     }
-  } catch(_) { /* abaikan error decode */ }
+  } catch(e) {
+    if (dbg) dbg.textContent = '💥 Error: ' + e.message;
+  }
 
-  // ~20fps — responsif tanpa membebani CPU
   qrAnimFrame = setTimeout(() => { qrAnimFrame = requestAnimationFrame(tickQR); }, 50);
 }
 
