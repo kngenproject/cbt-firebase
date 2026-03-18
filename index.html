@@ -197,9 +197,6 @@ body {
 #login-screen.active,
 #result-screen.active { display: flex; }
 
-/* Login screen: isolasi penuh via position fixed */
-body.screen-login .screen:not(#login-screen) { display: none !important; }
-
 @keyframes screenIn {
   from { opacity:0; transform:translateY(20px); }
   to   { opacity:1; transform:translateY(0); }
@@ -214,34 +211,15 @@ body.screen-login .screen:not(#login-screen) { display: none !important; }
    ROLE SELECT / LOGIN
 ════════════════════════════════ */
 #login-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  min-height:100vh;
+  align-items:center;
+  justify-content:center;
   padding: 1.5rem;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  background-color: var(--bg);
-  background-image:
+  flex-direction: column;
+  gap: 1.5rem;
+  background:
     radial-gradient(ellipse 60% 40% at 10% 20%, rgba(56,189,248,.06) 0%, transparent 70%),
     radial-gradient(ellipse 50% 50% at 90% 80%, rgba(74,222,128,.05) 0%, transparent 70%);
-}
-#login-screen.active { display: flex; }
-
-/* Inner container — caps width, ensures true centering on wide screens */
-.login-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 480px;
-  margin: auto; /* push to center vertically when content is short */
-  padding: 1rem 0;
 }
 
 .brand {
@@ -1435,7 +1413,6 @@ td strong { color:var(--text); font-weight:600; }
 
   /* ── Login ── */
   #login-screen { padding: 1.25rem 1rem; padding-top: max(1.5rem, env(safe-area-inset-top)); }
-  .login-inner { padding: .5rem 0 2rem; }
   .brand h1 { font-size: 1.75rem; }
   .role-cards { grid-template-columns: 1fr 1fr; max-width: 100%; gap: .75rem; }
   .role-card { padding: 1.25rem .875rem; }
@@ -2637,7 +2614,8 @@ window.jsQR = function() { return null; };
     </div>
     <button class="btn btn-primary" onclick="joinExam()">Mulai Ujian →</button>
   </div>
-</div>
+  </div><!-- /login-inner -->
+</div><!-- /login-screen -->
 
 <!-- ════════════════════════════════
      GURU DASHBOARD
@@ -2873,8 +2851,6 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
 
     </main>
   </div>
-  </div><!-- /login-inner -->
-</div>
 
 <!-- ════════════════════════════════
      EXAM SCREEN
