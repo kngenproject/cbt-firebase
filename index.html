@@ -5189,14 +5189,18 @@ function _setPermStatus(type, text) {
 
 // ══════════════════════════════════════
 // QR CODE SCANNER (SISWA)
+// Arsitektur: BarcodeDetector API (native) → jsQR CDN fallback
 // ══════════════════════════════════════
 let qrStream    = null;
 let qrAnimFrame = null;
 let qrActive    = false;
+let _bdDetector = null;  // BarcodeDetector instance (reused)
 
 function openQRScan() {
   document.getElementById('qrDetected').classList.remove('show');
   _qrErr('');
+  const dbg = document.getElementById('qrDebug');
+  if (dbg) dbg.textContent = '';
   document.getElementById('qrScanModal').classList.add('open');
   startCamera();
 }
@@ -5212,134 +5216,153 @@ function _qrErr(msg) {
   el.classList.toggle('show', !!msg);
 }
 
+function _dbg(msg) {
+  const el = document.getElementById('qrDebug');
+  if (el) el.innerHTML = msg;
+}
+
+// ── Deteksi metode scan terbaik ──
+function _getScanMethod() {
+  if (typeof BarcodeDetector !== 'undefined') return 'native';
+  if (typeof jsQR === 'function') return 'jsqr';
+  return 'none';
+}
+
 async function startCamera() {
   _qrErr('');
+  _dbg('');
 
-  // ── 1. Polyfill getUserMedia untuk browser lama ──
-  // Firefox < 36, UC Browser, Samsung Internet lama pakai prefix
+  // Polyfill getUserMedia
   if (!navigator.mediaDevices) navigator.mediaDevices = {};
   if (!navigator.mediaDevices.getUserMedia) {
-    const legacy = navigator.getUserMedia ||
-                   navigator.webkitGetUserMedia ||
-                   navigator.mozGetUserMedia ||
-                   navigator.msGetUserMedia;
-    if (legacy) {
-      navigator.mediaDevices.getUserMedia = (c) => new Promise((res, rej) => legacy.call(navigator, c, res, rej));
-    }
+    const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia ||
+                   navigator.mozGetUserMedia || navigator.msGetUserMedia;
+    if (legacy) navigator.mediaDevices.getUserMedia = (c) => new Promise((res, rej) => legacy.call(navigator, c, res, rej));
   }
-
-  // ── 2. Cek dukungan kamera ──
   if (!navigator.mediaDevices?.getUserMedia) {
-    _qrErr('Browser ini tidak mendukung akses kamera. ' +
-      'Gunakan Chrome, Firefox, atau Samsung Internet versi terbaru, dan pastikan halaman dibuka via HTTPS.');
+    _qrErr('Browser tidak mendukung kamera. Gunakan Chrome/Samsung Internet terbaru via HTTPS.');
     return;
   }
 
-  // ── 3. Hentikan stream lama jika ada ──
   stopCamera(false);
   qrActive = true;
 
-  // ── 4. Ambil stream kamera — coba beberapa constraint fallback ──
-  // Beberapa browser lama tidak support ideal/advanced constraints
+  // Inisialisasi BarcodeDetector sekali — reuse untuk performa
+  if (typeof BarcodeDetector !== 'undefined' && !_bdDetector) {
+    try {
+      const supported = await BarcodeDetector.getSupportedFormats();
+      if (supported.includes('qr_code')) {
+        _bdDetector = new BarcodeDetector({ formats: ['qr_code'] });
+      }
+    } catch(_) { _bdDetector = null; }
+  }
+
+  const method = _bdDetector ? 'native' : (typeof jsQR === 'function' ? 'jsqr' : 'none');
+  if (method === 'none') {
+    _qrErr('Scanner tidak tersedia. Pastikan koneksi internet aktif lalu tekan Coba Lagi.');
+    qrActive = false;
+    return;
+  }
+
+  // Kamera: minta resolusi yang cukup untuk QR tapi tidak berlebihan
   const constraints = [
-    // Minimal: kamera belakang, resolusi rendah cukup untuk QR
-    { video: { facingMode: { ideal: 'environment' }, width: { ideal: 320 }, height: { ideal: 320 } } },
-    // Fallback 1: kamera belakang saja
+    { video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } } },
     { video: { facingMode: 'environment' } },
-    // Fallback 2: kamera apapun
     { video: true },
   ];
 
   let lastErr = null;
   for (const c of constraints) {
-    try {
-      qrStream = await navigator.mediaDevices.getUserMedia(c);
-      lastErr = null;
-      break;
-    } catch(e) {
+    try { qrStream = await navigator.mediaDevices.getUserMedia(c); lastErr = null; break; }
+    catch(e) {
       lastErr = e;
-      // Jika bukan masalah constraint, langsung hentikan
-      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError' ||
-          e.name === 'NotFoundError' || e.name === 'NotReadableError') break;
+      if (['NotAllowedError','PermissionDeniedError','NotFoundError','NotReadableError'].includes(e.name)) break;
     }
   }
 
   if (lastErr || !qrStream) {
     qrActive = false;
-    const msg = {
-      NotAllowedError:      'Izin kamera ditolak. Buka Pengaturan browser → izinkan akses kamera untuk situs ini.',
-      PermissionDeniedError:'Izin kamera ditolak. Buka Pengaturan browser → izinkan akses kamera untuk situs ini.',
+    const msgs = {
+      NotAllowedError:      'Izin kamera ditolak. Buka Pengaturan browser → izinkan kamera untuk situs ini.',
+      PermissionDeniedError:'Izin kamera ditolak. Buka Pengaturan browser → izinkan kamera untuk situs ini.',
       NotFoundError:        'Tidak ada kamera di perangkat ini.',
-      NotReadableError:     'Kamera sedang dipakai aplikasi lain. Tutup app kamera lain lalu coba lagi.',
-      OverconstrainedError: 'Kamera tidak kompatibel. Coba lagi.',
-    }[(lastErr||{}).name] || ('Kamera tidak bisa diakses (' + ((lastErr||{}).name || 'unknown') + '). Coba ganti browser atau cek izin kamera.');
-    _qrErr(msg);
+      NotReadableError:     'Kamera dipakai aplikasi lain. Tutup app kamera lain lalu coba lagi.',
+    };
+    _qrErr(msgs[(lastErr||{}).name] || 'Kamera tidak bisa diakses (' + ((lastErr||{}).name||'unknown') + ').');
     return;
   }
 
-  // ── 5. Pasang stream ke video element ──
   const video = document.getElementById('qrVideo');
   video.srcObject = qrStream;
-  video.muted = true;
-  video.playsInline = true;
-  // Atribut HTML untuk browser yang butuh attribute bukan property
-  video.setAttribute('playsinline', '');
-  video.setAttribute('muted', '');
-  video.setAttribute('autoplay', '');
+  video.muted = true; video.playsInline = true;
+  video.setAttribute('playsinline',''); video.setAttribute('muted',''); video.setAttribute('autoplay','');
 
-  // ── 6. Tunggu video siap — gunakan beberapa event untuk kompatibilitas ──
   await new Promise(resolve => {
     if (video.readyState >= 3) { resolve(); return; }
     const done = () => {
-      video.removeEventListener('canplay', done);
-      video.removeEventListener('loadeddata', done);
-      video.removeEventListener('loadedmetadata', done);
+      ['canplay','loadeddata','loadedmetadata'].forEach(e => video.removeEventListener(e, done));
       resolve();
     };
-    video.addEventListener('canplay', done);
-    video.addEventListener('loadeddata', done);        // Firefox lebih cepat fire ini
-    video.addEventListener('loadedmetadata', done);    // Fallback
-    setTimeout(resolve, 5000);                         // Hard timeout
+    ['canplay','loadeddata','loadedmetadata'].forEach(e => video.addEventListener(e, done));
+    setTimeout(resolve, 5000);
   });
 
-  // Pastikan video playing (beberapa browser butuh dipanggil eksplisit)
-  if (video.paused) {
-    try { await video.play(); } catch(_) {}
-  }
+  if (video.paused) { try { await video.play(); } catch(_) {} }
 
-  // ── 7. Mulai scan loop ──
-  if (qrActive) tickQR();
+  _dbg((_bdDetector ? '⚡ Native BarcodeDetector' : '📦 jsQR') + ' · ' +
+       video.videoWidth + 'x' + video.videoHeight);
+
+  if (qrActive) {
+    if (_bdDetector) tickQRNative();
+    else tickQRCanvas();
+  }
 }
 
 function stopCamera(setInactive = true) {
   if (setInactive) qrActive = false;
-  if (qrAnimFrame) {
-    clearTimeout(qrAnimFrame);
-    cancelAnimationFrame(qrAnimFrame);
-    qrAnimFrame = null;
-  }
+  if (qrAnimFrame) { clearTimeout(qrAnimFrame); cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
   if (qrStream)    { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
   const video = document.getElementById('qrVideo');
   if (video) { video.srcObject = null; if (setInactive) video.load(); }
 }
 
-let _dbgTick = 0;
-function tickQR() {
+// ── METODE 1: BarcodeDetector (native, hardware-accelerated) ──
+// Langsung detect dari video element — tidak perlu canvas, paling akurat
+async function tickQRNative() {
+  if (!qrActive || !_bdDetector) return;
+  const video = document.getElementById('qrVideo');
+
+  if (!video || video.readyState < 2 || video.videoWidth === 0 || video.paused || video.ended) {
+    if (video?.paused) video.play().catch(() => {});
+    qrAnimFrame = setTimeout(tickQRNative, 100);
+    return;
+  }
+
+  try {
+    const barcodes = await _bdDetector.detect(video);
+    if (barcodes.length > 0) {
+      const raw  = barcodes[0].rawValue.trim().toUpperCase();
+      const match = raw.match(/([A-Z0-9]{4,10})(?:[^A-Z0-9]|$)/);
+      const kode  = match ? match[1] : raw.replace(/[^A-Z0-9]/g, '').substring(0, 10);
+      if (kode && kode.length >= 4) { onQRDetected(kode); return; }
+    }
+  } catch(_) {}
+
+  if (qrActive) qrAnimFrame = setTimeout(tickQRNative, 80);
+}
+
+// ── METODE 2: jsQR via canvas (fallback untuk Firefox/Safari) ──
+function tickQRCanvas() {
   if (!qrActive) return;
   const video  = document.getElementById('qrVideo');
   const canvas = document.getElementById('qrCanvas');
-  const dbg    = document.getElementById('qrDebug');
 
-  // Video belum siap — tunggu frame berikutnya
   if (!video || video.readyState < 2 || video.videoWidth === 0 || video.ended) {
-    if (dbg) dbg.textContent = '⏳ Menunggu video... (readyState=' + (video?.readyState ?? '?') + ')';
-    qrAnimFrame = requestAnimationFrame(tickQR); return;
+    qrAnimFrame = requestAnimationFrame(tickQRCanvas); return;
   }
-  // Video paused (iOS block) — coba resume
   if (video.paused) {
     video.play().catch(() => {});
-    if (dbg) dbg.textContent = '⏸ Video paused, mencoba resume...';
-    qrAnimFrame = requestAnimationFrame(tickQR); return;
+    qrAnimFrame = requestAnimationFrame(tickQRCanvas); return;
   }
 
   try {
@@ -5349,42 +5372,21 @@ function tickQR() {
     const cw    = Math.round(vw * scale);
     const ch    = Math.round(vh * scale);
 
-    if (canvas.width !== cw || canvas.height !== ch) {
-      canvas.width = cw; canvas.height = ch;
-    }
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(video, 0, 0, vw, vh, 0, 0, cw, ch);
     const img  = ctx.getImageData(0, 0, cw, ch);
-
-    // Cek jsQR tersedia
-    if (typeof jsQR !== 'function') {
-      if (dbg) dbg.innerHTML = '❌ jsQR tidak ter-load (CDN gagal?)';
-      qrAnimFrame = setTimeout(() => { qrAnimFrame = requestAnimationFrame(tickQR); }, 50);
-      return;
-    }
-
     const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
-
-    _dbgTick++;
-    if (dbg && _dbgTick % 10 === 0) {
-      dbg.innerHTML = `📷 x → canvas x<br>` +
-        (code ? `✅ jsQR: ${code.data}` : '🔍 Belum terdeteksi...');
-    }
-
     if (code?.data?.trim()) {
       const raw   = code.data.trim().toUpperCase();
       const match = raw.match(/([A-Z0-9]{4,10})(?:[^A-Z0-9]|$)/);
       const kode  = match ? match[1] : raw.replace(/[^A-Z0-9]/g, '').substring(0, 10);
-      if (dbg) dbg.innerHTML = `✅ jsQR: ${raw} → kode: ${kode}`;
       if (kode && kode.length >= 4) { onQRDetected(kode); return; }
-      if (dbg) dbg.innerHTML += '<br>⚠️ Kode terlalu pendek atau tidak valid';
     }
-  } catch(e) {
-    if (dbg) dbg.textContent = '💥 Error: ' + e.message;
-  }
+  } catch(_) {}
 
-  qrAnimFrame = setTimeout(() => { qrAnimFrame = requestAnimationFrame(tickQR); }, 50);
+  qrAnimFrame = setTimeout(() => { qrAnimFrame = requestAnimationFrame(tickQRCanvas); }, 50);
 }
 
 function onQRDetected(kode) {
@@ -5395,7 +5397,6 @@ function onQRDetected(kode) {
   if (input) input.value = kode;
   setTimeout(() => { closeQRScan(); toast('✅ Kode ujian terisi: ' + kode, 'success'); }, 900);
 }
-
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
