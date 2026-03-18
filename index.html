@@ -1335,6 +1335,9 @@ td strong { color:var(--text); font-weight:600; }
 body.screen-login .bottom-nav,
 body.screen-exam  .bottom-nav { display: none !important; }
 
+/* Sembunyikan semua screen lain saat login aktif */
+body.screen-login .screen:not(#login-screen) { display: none !important; }
+
 /* Swipe indicator dots */
 .swipe-dots {
   display: none;
@@ -1409,10 +1412,10 @@ body.screen-exam  .bottom-nav { display: none !important; }
   #guru-screen { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
   #guru-screen .dash-layout { flex: 1; min-height: 0; overflow: hidden; }
   #guru-screen .dash-main {
-    height: 100%;
+    height: calc(100% - 60px - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 1rem);
+    padding-bottom: 1rem;
   }
   /* tab-pane di dalam dash-main harus tampil dan bisa di-scroll */
   #guru-screen .tab-pane { display: none; }
