@@ -192,37 +192,13 @@ body {
 .serif { font-family: 'DM Serif Display', serif; }
 
 /* ── SCREENS ── */
-html { height: 100%; }
-body { min-height: 100vh; }
-
-.screen { display: none; }
-.screen.active {
-  display: block;
-  animation: screenIn 0.35s cubic-bezier(.22,1,.36,1);
-}
+.screen { display: none; animation: screenIn 0.35s cubic-bezier(.22,1,.36,1); }
+.screen.active { display: block; }
+#login-screen.active,
 #result-screen.active { display: flex; }
-#login-screen.active  { display: flex; }
 
-/* Saat login: body tidak bisa di-scroll, screen lain hidden */
-body.screen-login {
-  overflow: hidden;
-  height: 100vh;
-  height: 100dvh;
-}
+/* Login screen: isolasi penuh via position fixed */
 body.screen-login .screen:not(#login-screen) { display: none !important; }
-
-/* Saat guru aktif: body tidak scroll — dash-main yang scroll */
-body.screen-guru {
-  overflow: hidden;
-  height: 100vh;
-  height: 100dvh;
-}
-/* Saat exam aktif */
-body.screen-exam {
-  overflow: hidden;
-  height: 100vh;
-  height: 100dvh;
-}
 
 @keyframes screenIn {
   from { opacity:0; transform:translateY(20px); }
@@ -1433,19 +1409,14 @@ td strong { color:var(--text); font-weight:600; }
 @media (max-width:768px) {
 
   /* ── Safe area + scroll ── */
-  /* html/body diatur per body class (screen-login, screen-guru, screen-exam) */
-  .screen.active { -webkit-overflow-scrolling: touch; }
+  html, body { height: 100%; overflow: hidden; }
+  .screen { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #login-screen { height: auto; min-height: 100%; overflow-y: auto; }
   /* exam-screen dikelola via #exam-screen.active flex-chain — jangan dioverride */
   #exam-screen { height: 100dvh; overflow: hidden; }
 
-  /* ── Guru screen: harus memenuhi viewport ── */
-  #guru-screen.active {
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
+  /* ── Guru screen: dash-main harus scrollable dan tab-pane visible ── */
+  #guru-screen { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
   #guru-screen .dash-layout { flex: 1; min-height: 0; overflow: hidden; }
   #guru-screen .dash-main {
     height: 100%;
