@@ -5616,8 +5616,8 @@ async function startCamera() {
   // ── 4. Ambil stream kamera — coba beberapa constraint fallback ──
   // Beberapa browser lama tidak support ideal/advanced constraints
   const constraints = [
-    // Ideal: kamera belakang, resolusi tinggi
-    { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+    // Minimal: kamera belakang, resolusi rendah cukup untuk QR
+    { video: { facingMode: { ideal: 'environment' }, width: { ideal: 320 }, height: { ideal: 320 } } },
     // Fallback 1: kamera belakang saja
     { video: { facingMode: 'environment' } },
     // Fallback 2: kamera apapun
@@ -5715,7 +5715,7 @@ function tickQR() {
   try {
     const vw = video.videoWidth, vh = video.videoHeight;
     // Cap resolusi — QR tidak butuh > 400px untuk terbaca
-    const CAP  = 400;
+    const CAP  = 320;
     const full = Math.min(vw, vh);
     const size = Math.min(full, CAP);
 
