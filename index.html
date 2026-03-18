@@ -1281,8 +1281,7 @@ td strong { color:var(--text); font-weight:600; }
   transform: translateY(100%);
   transition: transform .25s cubic-bezier(.22,1,.36,1);
   pointer-events: none;
-  /* Isolasi agar touch events dari luar tidak bocor ke nav */
-  touch-action: none;
+  touch-action: manipulation;
 }
 .bottom-nav.show {
   transform: translateY(0);
@@ -5552,7 +5551,7 @@ document.body.classList.add('screen-login');
 
   // State tracking per touch/pointer
   let _startX = 0, _startY = 0, _moved = false, _active = false;
-  const DRAG_THRESHOLD = 8; // px — lebih dari ini = scroll bukan tap
+  const DRAG_THRESHOLD = 15; // px — naikkan agar tap normal tidak dianggap scroll
 
   function _exec(btn) {
     if (!btn) return;
@@ -5564,7 +5563,7 @@ document.body.classList.add('screen-login');
   // ── Pointer Events (Chrome Android 55+, Samsung 6+, Firefox 59+) ──
   if (window.PointerEvent) {
     nav.addEventListener('pointerdown', e => {
-      if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+      // Terima semua pointer type — beberapa Android kirim 'mouse'
       _startX = e.clientX; _startY = e.clientY;
       _moved = false; _active = true;
     }, { passive: true });
