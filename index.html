@@ -2443,23 +2443,35 @@ window.jsQR = function() { return null; };
 <!-- ══ BOTTOM NAV (mobile guru dashboard) ══ -->
 <div class="bottom-nav" id="bottomNav">
   <div class="bottom-nav-inner" id="bnavInner">
-    <button class="bnav-item active" id="bn-overview" onclick="switchPage('overview')">
+    <button class="bnav-item active" id="bn-overview"
+      onclick="switchPage('overview')"
+      ontouchstart="switchPage('overview')">
       <span class="bnav-icon">📊</span>Home
     </button>
-    <button class="bnav-item" id="bn-buat" onclick="switchPage('buat')">
+    <button class="bnav-item" id="bn-buat"
+      onclick="switchPage('buat')"
+      ontouchstart="switchPage('buat')">
       <span class="bnav-icon">✏️</span>Buat
     </button>
-    <button class="bnav-item" id="bn-upload" onclick="switchPage('upload')">
+    <button class="bnav-item" id="bn-upload"
+      onclick="switchPage('upload')"
+      ontouchstart="switchPage('upload')">
       <span class="bnav-icon">📤</span>Soal
     </button>
-    <button class="bnav-item" id="bn-sesi" onclick="switchPage('sesi')">
+    <button class="bnav-item" id="bn-sesi"
+      onclick="switchPage('sesi')"
+      ontouchstart="switchPage('sesi')">
       <span class="bnav-icon">📡</span>Sesi
       <span class="perm-badge" id="permBadgeBnav">0</span>
     </button>
-    <button class="bnav-item" id="bn-hasil" onclick="switchPage('hasil')">
+    <button class="bnav-item" id="bn-hasil"
+      onclick="switchPage('hasil')"
+      ontouchstart="switchPage('hasil')">
       <span class="bnav-icon">📋</span>Nilai
     </button>
-    <button class="bnav-item bnav-logout" onclick="confirmLogout()">
+    <button class="bnav-item bnav-logout"
+      onclick="confirmLogout()"
+      ontouchstart="confirmLogout()">
       <span class="bnav-icon">⎋</span>Keluar
     </button>
   </div>
@@ -3434,7 +3446,11 @@ function _cleanupPage(leaving) {
   if (leaving !== 'overview') { dashListeners.forEach(u => { try{u();}catch(e){} }); dashListeners = []; }
 }
 
+let _lastSwitchPage = 0;
 function switchPage(p) {
+  const now = Date.now();
+  if (now - _lastSwitchPage < 350) return;
+  _lastSwitchPage = now;
   _cleanupPage(p);
   document.querySelectorAll('.tab-pane[id^="page-"]').forEach(el => el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
