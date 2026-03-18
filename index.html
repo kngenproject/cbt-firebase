@@ -222,6 +222,16 @@ body {
     radial-gradient(ellipse 50% 50% at 90% 80%, rgba(74,222,128,.05) 0%, transparent 70%);
 }
 
+/* Inner container — caps width, ensures true centering on wide screens */
+.login-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 480px;
+}
+
 .brand {
   text-align:center;
 }
@@ -2506,7 +2516,6 @@ window.jsQR = function() { return null; };
       <div class="qr-scan-hint">Arahkan kamera ke QR code yang ditampilkan guru</div>
       <div class="qr-detected" id="qrDetected">✓ Kode terdeteksi: <strong id="qrDetectedCode">—</strong></div>
       <div class="qr-error-msg" id="qrErrorMsg"></div>
-      <div id="qrDebug" style="font-size:.7rem;color:#8899aa;margin-top:.4rem;font-family:monospace;line-height:1.6;text-align:left"></div>
       <button class="btn btn-outline btn-sm" style="width:100%;margin-top:.6rem" onclick="startCamera()">🔄 Coba Lagi</button>
     </div>
   </div>
@@ -2517,6 +2526,7 @@ window.jsQR = function() { return null; };
 ════════════════════════════════ -->
 <button class="theme-toggle-float" id="floatThemeBtn" onclick="toggleTheme()" title="Ganti tema"><span id="floatThemeIcon">☀️</span></button>
 <div id="login-screen" class="screen active">
+  <div class="login-inner">
   <div class="brand">
     <div class="brand-logo">◈ CBT Pro System</div>
     <h1>Ujian Online<br>Cerdas & Aman</h1>
@@ -2640,6 +2650,15 @@ window.jsQR = function() { return null; };
           <div><h2>Selamat datang 👋</h2><p>Panel manajemen ujian CBT Pro</p></div>
           <button class="btn btn-primary" style="width:auto" onclick="switchPage('buat')">+ Buat Ujian</button>
         </div>
+
+        <!-- Filter sesi untuk stat boxes -->
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
+          <span style="font-size:.78rem;color:var(--text2);white-space:nowrap">Filter statistik:</span>
+          <select id="statFilterSesi" onchange="applyStatFilter()" style="flex:1;max-width:260px;font-size:.78rem;padding:.3rem .6rem;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+            <option value="">Semua sesi</option>
+          </select>
+        </div>
+
         <div class="stat-row">
           <div class="stat-box" data-icon="📝"><span class="stat-num" id="stTotalExam" style="color:var(--accent)">0</span><span class="stat-label">Total Ujian</span></div>
           <div class="stat-box" data-icon="🎓"><span class="stat-num" id="stTotalSiswa" style="color:var(--green)">0</span><span class="stat-label">Total Peserta</span></div>
@@ -2796,6 +2815,14 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
           </div>
         </div>
 
+        <!-- Filter sesi -->
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap">
+          <span style="font-size:.78rem;color:var(--text2);white-space:nowrap">Filter sesi:</span>
+          <select id="hasilFilterSesi" onchange="applyHasilFilter()" style="flex:1;max-width:280px;font-size:.78rem;padding:.3rem .6rem;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+            <option value="">Semua sesi</option>
+          </select>
+        </div>
+
         <!-- Summary strip -->
         <div class="hasil-summary-strip" id="hasilSummaryStrip" style="display:none">
           <div class="hss-box">
@@ -2820,6 +2847,7 @@ Ibu kota Indonesia?,Bandung,Surabaya,Jakarta,Medan,C</pre>
 
     </main>
   </div>
+  </div><!-- /login-inner -->
 </div>
 
 <!-- ════════════════════════════════
@@ -2971,6 +2999,14 @@ const FSDb = {
   },
   async deleteExam(code) {
     try { await fdb.collection('exams').doc(code).delete(); } catch(e) { console.warn('FS deleteExam:', e); }
+  },
+  async deleteResults(examCode) {
+    try {
+      const snap = await fdb.collection('results').where('examCode','==',examCode).get();
+      const batch = fdb.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    } catch(e) { console.warn('FS deleteResults:', e); }
   },
   async saveResult(result) {
     try {
@@ -3497,19 +3533,17 @@ async function refreshDashboard() {
 
   const aktifExams = APP.exams.filter(e => e.status === 'aktif');
 
-  // Stats: filter by active sessions if available, else all
-  const relevantResults = aktifExams.length
-    ? APP.results.filter(r => aktifExams.some(e => e.code === r.examCode))
-    : APP.results;
+  // Populate stat filter dropdown
+  const statFilter = document.getElementById('statFilterSesi');
+  if (statFilter) {
+    const prev = statFilter.value;
+    const sorted = [...APP.exams].sort((a,b) => (a.status==='aktif'?0:1)-(b.status==='aktif'?0:1));
+    statFilter.innerHTML = '<option value="">Semua sesi</option>' +
+      sorted.map(e => `<option value="${e.code}">${e.title} (${e.code})${e.status==='aktif'?' ●':''}</option>`).join('');
+    if (prev) statFilter.value = prev;
+  }
 
-  document.getElementById('stTotalExam').textContent = APP.exams.length;
-  const totalSiswa = new Set(APP.results.map(r => r.nis)).size;
-  document.getElementById('stTotalSiswa').textContent = totalSiswa;
-  document.getElementById('stAktif').textContent = aktifExams.length;
-  const avg = relevantResults.length
-    ? Math.round(relevantResults.reduce((s,r) => s+r.score, 0) / relevantResults.length)
-    : (APP.results.length ? Math.round(APP.results.reduce((s,r)=>s+r.score,0)/APP.results.length) : '—');
-  document.getElementById('stRataRata').textContent = avg;
+  _renderStatBoxes();
 
   renderExamTable();
 
@@ -4193,6 +4227,15 @@ async function renderHasil() {
     return 0;
   });
 
+  // Populate filter dropdown (hasil page)
+  const hasilFilter = document.getElementById('hasilFilterSesi');
+  if (hasilFilter) {
+    const prev = hasilFilter.value;
+    hasilFilter.innerHTML = '<option value="">Semua sesi</option>' +
+      sortedExams.map(e => `<option value="${e.code}">${_escHtml(e.title)} (${e.code})${e.status==='aktif'?' ●':''}</option>`).join('');
+    if (prev) hasilFilter.value = prev;
+  }
+
   // Global summary
   const allScores = APP.results.map(r => r.score);
   const globalAvg = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : '—';
@@ -4220,6 +4263,74 @@ async function renderHasil() {
 
 function _escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Render stat boxes (overview) dengan filter sesi ──
+function _renderStatBoxes() {
+  const filterCode = document.getElementById('statFilterSesi')?.value || '';
+  const aktifExams = APP.exams.filter(e => e.status === 'aktif');
+
+  let filteredResults, filteredExams;
+  if (filterCode) {
+    filteredExams   = APP.exams.filter(e => e.code === filterCode);
+    filteredResults = APP.results.filter(r => r.examCode === filterCode);
+  } else {
+    filteredExams   = APP.exams;
+    filteredResults = APP.results;
+  }
+
+  document.getElementById('stTotalExam').textContent  = filteredExams.length;
+  document.getElementById('stTotalSiswa').textContent = new Set(filteredResults.map(r => r.nis)).size;
+  document.getElementById('stAktif').textContent      = filterCode
+    ? filteredExams.filter(e => e.status === 'aktif').length
+    : aktifExams.length;
+  const avg = filteredResults.length
+    ? Math.round(filteredResults.reduce((s,r) => s+r.score, 0) / filteredResults.length)
+    : '—';
+  document.getElementById('stRataRata').textContent = avg;
+}
+
+function applyStatFilter() { _renderStatBoxes(); }
+
+// ── Filter tampilan kartu hasil per sesi ──
+function applyHasilFilter() {
+  const code = document.getElementById('hasilFilterSesi')?.value || '';
+  document.querySelectorAll('#hasilPerSesi .sesi-hasil-card').forEach(card => {
+    card.style.display = (!code || card.id === 'shc-' + code) ? '' : 'none';
+  });
+  // Update summary strip sesuai filter
+  if (code) {
+    const results = APP.results.filter(r => r.examCode === code);
+    const avg = results.length ? Math.round(results.reduce((s,r)=>s+r.score,0)/results.length) : '—';
+    document.getElementById('hssTotal').textContent = new Set(results.map(r=>r.nis)).size;
+    document.getElementById('hssAvg').textContent   = avg;
+    document.getElementById('hssSesi').textContent  = 1;
+  } else {
+    const allScores = APP.results.map(r => r.score);
+    document.getElementById('hssTotal').textContent = new Set(APP.results.map(r=>r.nis)).size;
+    document.getElementById('hssAvg').textContent   = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : '—';
+    document.getElementById('hssSesi').textContent  = APP.exams.length;
+  }
+}
+
+// ── Hapus data hasil sesi ──
+function confirmHapusSesi(code, title) {
+  if (!confirm(`Hapus semua data hasil peserta untuk sesi "${title}"?\n\nTindakan ini tidak dapat dibatalkan.`)) return;
+  hapusSesi(code);
+}
+
+async function hapusSesi(code) {
+  try {
+    await FSDb.deleteResults(code);
+  } catch(e) { console.warn('hapusSesi:', e); }
+
+  // Hapus dari localStorage cache
+  APP.results = APP.results.filter(r => r.examCode !== code);
+  DB.set('results', APP.results);
+
+  toast('Data hasil sesi dihapus.', 'success');
+  renderHasil();
+  refreshDashboard();
 }
 
 function _buildSesiHasilCard(exam, results, isAktif, collapsed = false) {
@@ -4275,7 +4386,7 @@ function _buildSesiHasilCard(exam, results, isAktif, collapsed = false) {
       <div class="shc-actions">
         <button class="btn btn-green btn-sm" onclick="exportCSV('${exam.code}')">📥 Export CSV</button>
         <button class="btn btn-outline btn-sm" onclick="exportPDF('${exam.code}')">📄 Export PDF</button>
-        ${isAktif ? `<button class="btn btn-danger btn-xs" style="margin-left:auto" onclick="toggleExamStatus('${exam.code}')">Tutup Sesi</button>` : ''}
+        ${isAktif ? `<button class="btn btn-danger btn-xs" style="margin-left:auto" onclick="toggleExamStatus('${exam.code}')">Tutup Sesi</button>` : `<button class="btn btn-danger btn-xs" style="margin-left:auto" onclick="confirmHapusSesi('${exam.code}','${safeTitle}')">🗑 Hapus Data</button>`}
       </div>
     </div>
   </div>`;
@@ -5199,8 +5310,6 @@ let _bdDetector = null;  // BarcodeDetector instance (reused)
 function openQRScan() {
   document.getElementById('qrDetected').classList.remove('show');
   _qrErr('');
-  const dbg = document.getElementById('qrDebug');
-  if (dbg) dbg.textContent = '';
   document.getElementById('qrScanModal').classList.add('open');
   startCamera();
 }
@@ -5216,10 +5325,6 @@ function _qrErr(msg) {
   el.classList.toggle('show', !!msg);
 }
 
-function _dbg(msg) {
-  const el = document.getElementById('qrDebug');
-  if (el) el.innerHTML = msg;
-}
 
 // ── Deteksi metode scan terbaik ──
 function _getScanMethod() {
@@ -5230,7 +5335,6 @@ function _getScanMethod() {
 
 async function startCamera() {
   _qrErr('');
-  _dbg('');
 
   // Polyfill getUserMedia
   if (!navigator.mediaDevices) navigator.mediaDevices = {};
@@ -5308,9 +5412,6 @@ async function startCamera() {
   });
 
   if (video.paused) { try { await video.play(); } catch(_) {} }
-
-  _dbg((_bdDetector ? '⚡ Native BarcodeDetector' : '📦 jsQR') + ' · ' +
-       video.videoWidth + 'x' + video.videoHeight);
 
   if (qrActive) {
     if (_bdDetector) tickQRNative();
