@@ -1730,8 +1730,9 @@ td strong { color:var(--text); font-weight:600; }
 }
 #qrVideo {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  background: #000;
 }
 #qrCanvas { display: none; }
 .qr-overlay {
@@ -3759,8 +3760,8 @@ async function createExam() {
     try {
       new QRCode(document.getElementById('examQRCode'), {
         text: code, width: 160, height: 160,
-        colorDark: '#080c10', colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.L
       });
     } catch(e) {}
   }, 50);
@@ -4048,8 +4049,8 @@ async function refreshSesi() {
         if (qrEl && !qrEl.hasChildNodes()) {
           new QRCode(qrEl, {
             text: exam.code, width: 120, height: 120,
-            colorDark: '#080c10', colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.H
+            colorDark: '#000000', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.L
           });
         }
       } catch(e) {}
