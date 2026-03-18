@@ -192,10 +192,15 @@ body {
 .serif { font-family: 'DM Serif Display', serif; }
 
 /* ── SCREENS ── */
-.screen { display: none; animation: screenIn 0.35s cubic-bezier(.22,1,.36,1); }
-.screen.active { display: block; }
+.screen { display: none; }
+.screen.active { display: block; animation: screenIn 0.35s cubic-bezier(.22,1,.36,1); }
 #login-screen.active,
 #result-screen.active { display: flex; }
+
+/* Saat login aktif, sembunyikan body scroll — login punya scroll sendiri */
+body.screen-login { overflow: hidden; height: 100dvh; }
+/* Saat login tidak aktif, hilangkan dari flow sepenuhnya */
+#login-screen:not(.active) { display: none !important; position: static; }
 
 @keyframes screenIn {
   from { opacity:0; transform:translateY(20px); }
@@ -211,15 +216,25 @@ body {
    ROLE SELECT / LOGIN
 ════════════════════════════════ */
 #login-screen {
-  min-height:100vh;
-  align-items:center;
-  justify-content:center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  align-items: center;
+  justify-content: flex-start;
   padding: 1.5rem;
   flex-direction: column;
-  gap: 1.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background:
     radial-gradient(ellipse 60% 40% at 10% 20%, rgba(56,189,248,.06) 0%, transparent 70%),
     radial-gradient(ellipse 50% 50% at 90% 80%, rgba(74,222,128,.05) 0%, transparent 70%);
+  background-attachment: local;
+  /* Isolasi penuh — dashboard di belakang tidak ter-render */
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 10;
 }
 
 /* Inner container — caps width, ensures true centering on wide screens */
@@ -230,6 +245,8 @@ body {
   gap: 1.5rem;
   width: 100%;
   max-width: 480px;
+  margin: auto; /* push to center vertically when content is short */
+  padding: 1rem 0;
 }
 
 .brand {
@@ -1399,7 +1416,7 @@ td strong { color:var(--text); font-weight:600; }
   /* ── Safe area + scroll ── */
   html, body { height: 100%; overflow: hidden; }
   .screen { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  #login-screen { height: auto; min-height: 100%; overflow-y: auto; }
+  /* login-screen sudah position:fixed + overflow-y:auto di base CSS */
   /* exam-screen dikelola via #exam-screen.active flex-chain — jangan dioverride */
   #exam-screen { height: 100dvh; overflow: hidden; }
 
@@ -1423,6 +1440,7 @@ td strong { color:var(--text); font-weight:600; }
 
   /* ── Login ── */
   #login-screen { padding: 1.25rem 1rem; padding-top: max(1.5rem, env(safe-area-inset-top)); }
+  .login-inner { padding: .5rem 0 2rem; }
   .brand h1 { font-size: 1.75rem; }
   .role-cards { grid-template-columns: 1fr 1fr; max-width: 100%; gap: .75rem; }
   .role-card { padding: 1.25rem .875rem; }
