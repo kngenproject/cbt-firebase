@@ -5687,7 +5687,11 @@ async function startCamera() {
 
 function stopCamera(setInactive = true) {
   if (setInactive) qrActive = false;
-  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+  if (qrAnimFrame) {
+    clearTimeout(qrAnimFrame);
+    cancelAnimationFrame(qrAnimFrame);
+    qrAnimFrame = null;
+  }
   if (qrStream)    { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
   const video = document.getElementById('qrVideo');
   if (video) { video.srcObject = null; if (setInactive) video.load(); }
@@ -5710,10 +5714,19 @@ function tickQR() {
 
   try {
     const vw = video.videoWidth, vh = video.videoHeight;
-    const size = Math.min(vw, vh);
-    canvas.width = size; canvas.height = size;
+    // Cap resolusi — QR tidak butuh > 400px untuk terbaca
+    const CAP  = 400;
+    const full = Math.min(vw, vh);
+    const size = Math.min(full, CAP);
+
+    // Hanya reset canvas jika ukuran berubah (hindari realokasi buffer tiap frame)
+    if (canvas.width !== size || canvas.height !== size) {
+      canvas.width = size; canvas.height = size;
+    }
+
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(video, (vw - size) / 2, (vh - size) / 2, size, size, 0, 0, size, size);
+    const sx = (vw - full) / 2, sy = (vh - full) / 2;
+    ctx.drawImage(video, sx, sy, full, full, 0, 0, size, size);
     const img  = ctx.getImageData(0, 0, size, size);
     const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
     if (code?.data?.trim()) {
@@ -5724,7 +5737,8 @@ function tickQR() {
     }
   } catch(_) { /* abaikan error decode */ }
 
-  qrAnimFrame = requestAnimationFrame(tickQR);
+  // Throttle ke ~12fps — cukup untuk scan QR, jauh lebih ringan dari 60fps
+  qrAnimFrame = setTimeout(() => { qrAnimFrame = requestAnimationFrame(tickQR); }, 80);
 }
 
 function onQRDetected(kode) {
