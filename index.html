@@ -454,27 +454,8 @@ textarea { resize:vertical; min-height:100px; }
 .dash-main { padding:2rem; overflow-y:auto; overflow-x:hidden; position:relative; }
 
 /* Swipe indicator dots */
-.swipe-dots {
-  display: none;
-  justify-content: center;
-  gap: .4rem;
-  padding: .6rem 0 .25rem;
-}
 @media (max-width: 900px) {
-  .swipe-dots { display: flex; }
-}
-.swipe-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--border2);
-  transition: all .2s;
-  cursor: pointer;
-}
-.swipe-dot.active {
-  background: var(--accent);
-  width: 18px;
-  border-radius: 3px;
-}
+  }
 
 .page-header {
   display:flex;
@@ -1623,9 +1604,7 @@ td strong { color:var(--text); font-weight:600; }
   .hss-lbl { font-size: .65rem; }
 
   /* Swipe dots — lebih kecil */
-  .swipe-dot { width: 5px; height: 5px; }
-  .swipe-dot.active { width: 14px; }
-
+    
   /* Form fields */
   .field { margin-bottom: .875rem; }
   label { font-size: .68rem; }
@@ -2638,14 +2617,6 @@ window.jsQR = function() { return null; };
 
     <!-- Main -->
     <main class="dash-main" id="dashMain">
-      <!-- Swipe indicator dots (mobile only) -->
-      <div class="swipe-dots" id="swipeDots">
-        <div class="swipe-dot active" onclick="switchPage('overview')" id="dot-overview"></div>
-        <div class="swipe-dot" onclick="switchPage('buat')" id="dot-buat"></div>
-        <div class="swipe-dot" onclick="switchPage('upload')" id="dot-upload"></div>
-        <div class="swipe-dot" onclick="switchPage('sesi')" id="dot-sesi"></div>
-        <div class="swipe-dot" onclick="switchPage('hasil')" id="dot-hasil"></div>
-      </div>
 
       <!-- ── OVERVIEW ── -->
       <div id="page-overview" class="tab-pane active">
@@ -3382,7 +3353,6 @@ async function logout() { confirmLogout(); }
 // ══════════════════════════════════════
 // GURU DASHBOARD NAVIGATION
 // ══════════════════════════════════════
-// ── halaman dan urutan untuk swipe ──
 const PAGES = ['overview','buat','upload','sesi','hasil'];
 // navTap: dipakai sidebar desktop
 function navTap(p) { switchPage(p); }
@@ -3411,11 +3381,6 @@ function switchPage(p) {
     el.classList.toggle('active', el.dataset.page === p);
   });
   setBnav(p);
-  // Update swipe dots
-  PAGES.forEach(page => {
-    const dot = document.getElementById('dot-'+page);
-    if (dot) dot.classList.toggle('active', page === p);
-  });
   // Scroll ke atas saat ganti halaman
   const main = document.getElementById('dashMain');
   if (main) main.scrollTop = 0;
@@ -3423,78 +3388,6 @@ function switchPage(p) {
   if (p === 'sesi') { refreshSesi(); _updatePermBadge(0); }
   if (p === 'overview') refreshDashboard();
 }
-
-// ════════════════════════════════
-// SWIPE GESTURE — kiri/kanan ganti halaman
-// ════════════════════════════════
-(function initSwipe() {
-  let startX = 0, startY = 0, startT = 0;
-  const MIN_SWIPE_X = 55;   // px minimum horizontal
-  const MAX_SWIPE_Y = 80;   // px maximum vertical (bukan scroll)
-  const MAX_DURATION = 400; // ms
-
-  function getCurrentPage() {
-    for (const p of PAGES) {
-      const el = document.getElementById('page-'+p);
-      if (el && el.classList.contains('active')) return p;
-    }
-    return PAGES[0];
-  }
-
-  function onTouchStart(e) {
-    // Hanya aktif di guru dashboard (dashMain)
-    if (!document.getElementById('guru-screen')?.classList.contains('active')) return;
-    // Jangan swipe jika menyentuh elemen scrollable horizontal (tabel, tabs)
-    const target = e.target.closest('.table-wrap, .tabs, select, input, textarea, .num-grid');
-    if (target) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    startT = Date.now();
-  }
-
-  function onTouchEnd(e) {
-    if (!startX) return;
-    if (!document.getElementById('guru-screen')?.classList.contains('active')) return;
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    const dt = Date.now() - startT;
-    startX = 0;
-
-    if (dt > MAX_DURATION) return;
-    if (Math.abs(dx) < MIN_SWIPE_X) return;
-    if (Math.abs(dy) > MAX_SWIPE_Y) return;
-    if (Math.abs(dx) < Math.abs(dy) * 1.2) return; // lebih vertikal dari horizontal
-
-    const cur = getCurrentPage();
-    const idx = PAGES.indexOf(cur);
-    if (dx < 0 && idx < PAGES.length - 1) {
-      // Swipe kiri → halaman berikutnya
-      switchPage(PAGES[idx + 1]);
-    } else if (dx > 0 && idx > 0) {
-      // Swipe kanan → halaman sebelumnya
-      switchPage(PAGES[idx - 1]);
-    }
-  }
-
-  // Pasang listener setelah DOM siap
-  document.addEventListener('DOMContentLoaded', () => {
-    const main = document.getElementById('dashMain');
-    if (main) {
-      main.addEventListener('touchstart', onTouchStart, { passive: true });
-      main.addEventListener('touchend',   onTouchEnd,   { passive: true });
-    }
-  });
-  // Fallback jika DOMContentLoaded sudah lewat
-  if (document.readyState !== 'loading') {
-    setTimeout(() => {
-      const main = document.getElementById('dashMain');
-      if (main) {
-        main.addEventListener('touchstart', onTouchStart, { passive: true });
-        main.addEventListener('touchend',   onTouchEnd,   { passive: true });
-      }
-    }, 0);
-  }
-})();
 
 function switchTab(el, pane) {
   const tabsContainer = el.closest('.tabs');
