@@ -136,16 +136,54 @@ body:not(.screen-login) .theme-toggle-float { display: none !important; }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  background: var(--bg); /* Cegah white flash sebelum body render */
+  height: 100%;
+}
 
 body {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
   color: var(--text);
+  min-height: 100%;
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+}
+
+/* ════════════════════════════════
+   STANDALONE (PWA installed)
+════════════════════════════════ */
+@media (display-mode: standalone) {
+  /* Status bar area — Android standalone tidak punya browser chrome
+     tapi konten bisa tertimpa status bar system */
+  html {
+    padding-top: env(safe-area-inset-top, 0px);
+    background: var(--bg);
+  }
+  /* Login screen: tambahkan padding top untuk status bar */
+  #login-screen {
+    padding-top: max(2rem, calc(env(safe-area-inset-top, 0px) + 1rem));
+  }
+  /* Floating theme button: turunkan agar tidak tertutup status bar */
+  .theme-toggle-float {
+    top: max(1.25rem, calc(env(safe-area-inset-top, 0px) + .75rem));
+  }
+  /* Exam topbar: pastikan tidak tertutup */
+  .exam-topbar {
+    padding-top: max(.75rem, calc(env(safe-area-inset-top, 0px) + .55rem));
+  }
+  /* Scrollbar tidak perlu di standalone */
+  ::-webkit-scrollbar { width: 0; height: 0; }
+}
+
+/* Font fallback jika Google Fonts tidak ter-load (offline/slow) */
+@font-face {
+  font-family: 'DM Sans';
+  src: local('system-ui'), local('-apple-system'), local('Segoe UI');
+  font-display: swap;
 }
 
 /* ── UTIL ── */
@@ -5942,14 +5980,43 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
-  const skipHosts = ['firebaseio.com','googleapis.com','gstatic.com',
-                     'cdnjs.cloudflare.com','fonts.googleapis.com','fonts.gstatic.com'];
+  // Skip request dengan credentials (auth tokens) — biarkan browser handle langsung
+  if (e.request.credentials === 'include') return;
+  // Skip domain Firebase (auth & firestore) dan CDN
+  // JANGAN skip fonts — kita cache fonts agar tampilan konsisten offline
+  const skipHosts = [
+    'firebaseio.com', 'firebaseapp.com', 'firebase.google.com',
+    'googleapis.com', 'gstatic.com', 'google.com', 'googletagmanager.com',
+    'identitytoolkit.googleapis.com', 'securetoken.googleapis.com',
+    'cloudflare.com'
+  ];
+  // CDN scripts: cache stale-while-revalidate
+  const cdnHosts = ['cdnjs.cloudflare.com'];
+  const isCDN = cdnHosts.some(h => url.hostname.endsWith(h));
+  // Font requests: cache-first (jarang berubah)
+  const isFont = url.hostname.endsWith('fonts.googleapis.com') ||
+                 url.hostname.endsWith('fonts.gstatic.com');
   if (skipHosts.some(h => url.hostname.endsWith(h))) return;
   const isPage = url.href === PAGE_URL_SW || url.pathname === new URL(PAGE_URL_SW).pathname;
+  // Fonts: cache-first (stale OK, jarang berubah)
+  if (isFont) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(res => {
+          if (res && res.status === 200)
+            caches.open(CACHE).then(c => c.put(e.request, res.clone())).catch(()=>{});
+          return res;
+        }).catch(() => cached || new Response('', {status:503}));
+      })
+    );
+    return;
+  }
+
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        if (res && res.status === 200 && url.origin === PAGE_ORIGIN)
+        if (res && res.status === 200 && (url.origin === PAGE_ORIGIN || isCDN))
           caches.open(CACHE).then(c => c.put(e.request, res.clone())).catch(()=>{});
         return res;
       })
@@ -5979,17 +6046,29 @@ self.addEventListener('fetch', e => {
         if (!nw) return;
         nw.addEventListener('statechange', () => {
           if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            toast('Versi baru tersedia! Memuat ulang...', 'info');
-            setTimeout(() => window.location.reload(), 1500);
+            // Jangan reload kalau user sedang proses login
+            const loginBtn = document.getElementById('btnLoginGuru');
+            const regBtn   = document.getElementById('btnRegGuru');
+            const authBusy = (loginBtn && loginBtn.disabled) || (regBtn && regBtn.disabled);
+            if (!authBusy) {
+              toast('Versi baru tersedia! Memuat ulang...', 'info');
+              setTimeout(() => window.location.reload(), 1500);
+            }
           }
         });
       });
-      // Auto-reload saat controller berganti (skipWaiting aktif)
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!_swFirstActivation) window.location.reload();
-        _swFirstActivation = false;
-      });
+      // Auto-reload saat controller berganti — tapi JANGAN interrupt auth
       let _swFirstActivation = true;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_swFirstActivation) { _swFirstActivation = false; return; }
+        // Jangan reload kalau user sedang dalam proses login/daftar
+        const loginBtn  = document.getElementById('btnLoginGuru');
+        const regBtn    = document.getElementById('btnRegGuru');
+        const authBusy  = (loginBtn && loginBtn.disabled) || (regBtn && regBtn.disabled);
+        if (authBusy) return;
+        // Tunda reload 2 detik agar tidak interrupt proses lain
+        setTimeout(() => window.location.reload(), 2000);
+      });
     })
     .catch(err => console.warn('[PWA] SW register failed:', err.message));
 
