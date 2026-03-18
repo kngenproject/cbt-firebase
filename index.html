@@ -212,8 +212,8 @@ body {
    ROLE SELECT / LOGIN
 ════════════════════════════════ */
 #login-screen {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -222,6 +222,16 @@ body {
   background:
     radial-gradient(ellipse 60% 40% at 10% 20%, rgba(56,189,248,.06) 0%, transparent 70%),
     radial-gradient(ellipse 50% 50% at 90% 80%, rgba(74,222,128,.05) 0%, transparent 70%);
+}
+
+.login-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
 }
 /* .screen.active sets display:block — override back to flex for login */
 #login-screen.active { display: flex; }
@@ -1270,16 +1280,18 @@ td strong { color:var(--text); font-weight:600; }
   bottom: 0; left: 0; right: 0;
   background: var(--card);
   border-top: 1px solid var(--border);
-  z-index: 300;
+  z-index: 500;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   transform: translateY(100%);
   transition: transform .25s cubic-bezier(.22,1,.36,1);
   pointer-events: none;
   touch-action: manipulation;
+  /* Isolasi layer agar tidak terhalang elemen lain */
+  isolation: isolate;
 }
 .bottom-nav.show {
   transform: translateY(0);
-  pointer-events: all;
+  pointer-events: auto;
 }
 .bottom-nav-inner {
   display: flex;
@@ -1292,8 +1304,7 @@ td strong { color:var(--text); font-weight:600; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* Padding vertikal besar agar hitbox penuh */
-  padding: 0 .25rem;
+  padding: 0;
   gap: .15rem;
   cursor: pointer;
   border: none;
@@ -1305,17 +1316,18 @@ td strong { color:var(--text); font-weight:600; }
   line-height: 1.2;
   white-space: nowrap;
   transition: color .12s, background .12s;
-  /* Hapus highlight bawaan & 300ms delay */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   position: relative;
   min-width: 0;
   user-select: none;
   -webkit-user-select: none;
-  /* Stretch ke penuh tinggi inner agar area tap = area visual */
   align-self: stretch;
-  /* Overflow visible agar badge tidak terpotong */
   overflow: visible;
+  /* Perbesar area tap dengan pseudo-element */
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
 }
 .bnav-item::after { display: none; }
 .bnav-item:active { background: rgba(255,255,255,.08); border-radius: 8px; }
@@ -1444,6 +1456,7 @@ body.screen-exam  .bottom-nav { display: none !important; }
   input, select, textarea { min-height: 44px; font-size: 16px !important; }
   .opt { padding: .85rem .875rem; }
   .num-btn { min-height: 28px; }
+  .bnav-item { min-height: 60px; min-width: 44px; }
 
   /* ── Exam topbar ── */
   .exam-topbar {
