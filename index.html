@@ -2412,23 +2412,23 @@ window.jsQR = function() { return null; };
 <!-- ══ BOTTOM NAV (mobile guru dashboard) ══ -->
 <div class="bottom-nav" id="bottomNav">
   <div class="bottom-nav-inner" id="bnavInner">
-    <button class="bnav-item active" id="bn-overview" data-nav="overview">
+    <button class="bnav-item active" id="bn-overview" onclick="switchPage('overview')">
       <span class="bnav-icon">📊</span>Home
     </button>
-    <button class="bnav-item" id="bn-buat" data-nav="buat">
+    <button class="bnav-item" id="bn-buat" onclick="switchPage('buat')">
       <span class="bnav-icon">✏️</span>Buat
     </button>
-    <button class="bnav-item" id="bn-upload" data-nav="upload">
+    <button class="bnav-item" id="bn-upload" onclick="switchPage('upload')">
       <span class="bnav-icon">📤</span>Soal
     </button>
-    <button class="bnav-item" id="bn-sesi" data-nav="sesi">
+    <button class="bnav-item" id="bn-sesi" onclick="switchPage('sesi')">
       <span class="bnav-icon">📡</span>Sesi
       <span class="perm-badge" id="permBadgeBnav">0</span>
     </button>
-    <button class="bnav-item" id="bn-hasil" data-nav="hasil">
+    <button class="bnav-item" id="bn-hasil" onclick="switchPage('hasil')">
       <span class="bnav-icon">📋</span>Nilai
     </button>
-    <button class="bnav-item bnav-logout" data-action="logout">
+    <button class="bnav-item bnav-logout" onclick="confirmLogout()">
       <span class="bnav-icon">⎋</span>Keluar
     </button>
   </div>
@@ -5542,84 +5542,6 @@ function toggleTheme() {
 
 // Set initial screen body class (login-screen is active by default in HTML)
 document.body.classList.add('screen-login');
-
-// ── Bottom nav: event handling yang benar untuk Android ──
-// Strategi: pointer events (modern) + touch fallback, dengan drag detection
-(function() {
-  const nav = document.getElementById('bottomNav');
-  if (!nav) return;
-
-  // State tracking per touch/pointer
-  let _startX = 0, _startY = 0, _moved = false, _active = false;
-  const DRAG_THRESHOLD = 15; // px — naikkan agar tap normal tidak dianggap scroll
-
-  function _exec(btn) {
-    if (!btn) return;
-    if (btn.dataset.action === 'logout') { confirmLogout(); return; }
-    const page = btn.dataset.nav;
-    if (page) switchPage(page);
-  }
-
-  // ── Pointer Events (Chrome Android 55+, Samsung 6+, Firefox 59+) ──
-  if (window.PointerEvent) {
-    nav.addEventListener('pointerdown', e => {
-      // Terima semua pointer type — beberapa Android kirim 'mouse'
-      _startX = e.clientX; _startY = e.clientY;
-      _moved = false; _active = true;
-    }, { passive: true });
-
-    nav.addEventListener('pointermove', e => {
-      if (!_active) return;
-      if (Math.abs(e.clientX - _startX) > DRAG_THRESHOLD ||
-          Math.abs(e.clientY - _startY) > DRAG_THRESHOLD) {
-        _moved = true;
-      }
-    }, { passive: true });
-
-    nav.addEventListener('pointerup', e => {
-      if (!_active) return;
-      _active = false;
-      if (_moved) return; // Ini scroll, bukan tap
-      const btn = e.target.closest('[data-nav],[data-action]');
-      _exec(btn);
-    }, { passive: true });
-
-    nav.addEventListener('pointercancel', () => { _active = false; _moved = false; }, { passive: true });
-
-  } else {
-    // ── Touch Events fallback (browser lama) ──
-    let _lastClick = 0;
-
-    nav.addEventListener('touchstart', e => {
-      const t = e.touches[0];
-      _startX = t.clientX; _startY = t.clientY;
-      _moved = false; _active = true;
-    }, { passive: true });
-
-    nav.addEventListener('touchmove', e => {
-      if (!_active) return;
-      const t = e.touches[0];
-      if (Math.abs(t.clientX - _startX) > DRAG_THRESHOLD ||
-          Math.abs(t.clientY - _startY) > DRAG_THRESHOLD) {
-        _moved = true;
-      }
-    }, { passive: true });
-
-    nav.addEventListener('touchend', e => {
-      if (!_active) return;
-      _active = false;
-      if (_moved) return;
-      _lastClick = Date.now();
-      const btn = e.target.closest('[data-nav],[data-action]');
-      if (btn) { e.preventDefault(); _exec(btn); }
-    }, { passive: false });
-
-    // Supres ghost click setelah touchend
-    nav.addEventListener('click', e => {
-      if (Date.now() - _lastClick < 500) { e.preventDefault(); e.stopPropagation(); }
-    }, true);
-  }
-})();
 
 APP.uploadedSoal = DB.get('uploadedSoal', []);
 APP.exams = DB.get('exams', []);
