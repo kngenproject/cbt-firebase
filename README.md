@@ -60,7 +60,7 @@
 
 | Login | Dashboard Guru | Ujian Siswa |
 |:---:|:---:|:---:|
-| ![login](#) | ![dashboard](#) | ![exam](#) |
+| ![login](login.png) | ![dashboard](dashboard.png) | ![exam](exam.png) |
 
 ---
 
