@@ -4,7 +4,7 @@
 
 ### Sistem Ujian Online Berbasis Web
 
-[![Build & Release APK](https://github.com/username/Build-APK-Native-via-Kotlin/actions/workflows/build.yml/badge.svg)](https://github.com/username/Build-APK-Native-via-Kotlin/actions)
+[![Build & Release APK](https://github.com/kngenproject/Build-APK-Native-via-Kotlin/actions/workflows/build.yml/badge.svg)](https://github.com/kngenproject/Build-APK-Native-via-Kotlin/actions)
 [![Firebase](https://img.shields.io/badge/Firebase-9.22.2-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com)
 [![PWA Ready](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=flat&logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat)](LICENSE)
