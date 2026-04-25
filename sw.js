@@ -80,8 +80,9 @@ self.addEventListener('fetch', event => {
         return fetch(event.request).then(response => {
           // Cache response baru
           if (response && response.status === 200 && response.type !== 'opaque') {
+            const responseClone = response.clone(); // clone DULU sebelum return
             caches.open(CACHE_NAME).then(cache =>
-              cache.put(event.request, response.clone())
+              cache.put(event.request, responseClone)
             );
           }
           return response;
