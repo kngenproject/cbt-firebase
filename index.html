@@ -2355,10 +2355,8 @@ body.screen-login .screen:not(#login-screen) { display: none !important; }
   .screenshot-watermark { display:none !important; }
 }
 </style>
-<!-- jsQR — real library from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-// jsQR loaded from CDN above — fallback stub hanya jika CDN gagal
 if (typeof jsQR === 'undefined') {
 // fallback stub — hanya aktif jika CDN tidak ter-load
 window.jsQR = function() { return null; };
@@ -2993,11 +2991,12 @@ const FSDb = {
     try { await fdb.collection('exams').doc(exam.code).set(exam); } catch(e) { console.warn('FS saveExam:', e); }
   },
   async getExams() {
-    try {
-      const snap = await fdb.collection('exams').get();
-      return snap.docs.map(d => d.data());
-    } catch(e) { console.warn('FS getExams:', e); return []; }
-  },
+  if (!auth.currentUser) return [];  // ← tambahkan baris ini
+  try {
+    const snap = await fdb.collection('exams').get();
+    return snap.docs.map(d => d.data());
+  } catch(e) { console.warn('FS getExams:', e); return []; }
+},
   async updateExamStatus(code, status) {
     try { await fdb.collection('exams').doc(code).update({ status }); } catch(e) { console.warn('FS updateExam:', e); }
   },
@@ -3019,6 +3018,7 @@ const FSDb = {
     } catch(e) { console.warn('FS saveResult:', e); }
   },
   async getResults(examCode) {
+    if (!auth.currentUser) return [];  // ← tambahkan baris ini
     try {
       let q = fdb.collection('results');
       if (examCode) q = q.where('examCode','==',examCode);
@@ -5696,13 +5696,7 @@ self.addEventListener('fetch', e => {
 });
 `;
 
-  const swBlob = new Blob([swCode], { type: 'text/javascript' });
-  const swURL  = URL.createObjectURL(swBlob);
-
-  // Scope: gunakan direktori halaman (bukan '/' agar tidak konflik dengan blob origin)
-  const swScope = PAGE_URL.substring(0, PAGE_URL.lastIndexOf('/') + 1) || '/';
-
-  navigator.serviceWorker.register(swURL, { scope: swScope })
+      navigator.serviceWorker.register('./sw.js')
     .then(reg => {
       console.log('[PWA] SW registered ✓ scope:', reg.scope);
       reg.addEventListener('updatefound', () => {
