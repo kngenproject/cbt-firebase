@@ -2991,12 +2991,12 @@ const FSDb = {
     try { await fdb.collection('exams').doc(exam.code).set(exam); } catch(e) { console.warn('FS saveExam:', e); }
   },
   async getExams() {
-  if (!auth.currentUser) return [];  // ← tambahkan baris ini
-  try {
-    const snap = await fdb.collection('exams').get();
-    return snap.docs.map(d => d.data());
-  } catch(e) { console.warn('FS getExams:', e); return []; }
-},
+    if (!auth.currentUser) return [];
+    try {
+      const snap = await fdb.collection('exams').get();
+      return snap.docs.map(d => d.data());
+    } catch(e) { console.warn('FS getExams:', e); return []; }
+  },
   async updateExamStatus(code, status) {
     try { await fdb.collection('exams').doc(code).update({ status }); } catch(e) { console.warn('FS updateExam:', e); }
   },
@@ -3018,9 +3018,9 @@ const FSDb = {
     } catch(e) { console.warn('FS saveResult:', e); }
   },
   async getResults(examCode) {
-    if (!auth.currentUser) return [];  // ← guard
-    await auth.currentUser.getIdToken(); // ← pastikan token fresh
+    if (!auth.currentUser) return [];
     try {
+      await auth.currentUser.getIdToken();
       let q = fdb.collection('results');
       if (examCode) q = q.where('examCode','==',examCode);
       const snap = await q.get();
@@ -3100,8 +3100,11 @@ auth.onAuthStateChanged(async user => {
       if (cleanExams.length !== storedExams.length) DB.set('exams', cleanExams);
       showScreen('guru-screen');
       document.getElementById('bottomNav').classList.add('show');
+      // Pastikan token siap sebelum query Firestore
+      try { await user.getIdToken(true); } catch(e) {}
       await refreshDashboard();
     }
+    // Jika APP.role sudah 'guru', berarti login manual sudah handle sendiri — skip
   } else {
     // Tidak ada sesi aktif, pastikan di halaman login
     if (APP.role === 'guru') {
@@ -3278,7 +3281,7 @@ function backToRole() {
 }
 
 async function loginGuru() {
-  const email = document.getElementById('guruUser').value.trim();
+  const email = document.getElementById('guruEmail').value.trim();
   const pass  = document.getElementById('guruPass').value;
   if (!email || !pass) { toast('Email dan password harus diisi!', 'error'); return; }
   const btn = document.getElementById('btnLoginGuru');
