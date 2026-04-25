@@ -3278,7 +3278,7 @@ function backToRole() {
 }
 
 async function loginGuru() {
-  const email = document.getElementById('guruEmail').value.trim();
+  const email = document.getElementById('guruUser').value.trim();
   const pass  = document.getElementById('guruPass').value;
   if (!email || !pass) { toast('Email dan password harus diisi!', 'error'); return; }
   const btn = document.getElementById('btnLoginGuru');
@@ -5517,31 +5517,6 @@ APP.exams = DB.get('exams', []);
 APP.results = DB.get('results', []);
 
 // ══════════════════════════════════════
-// ══════════════════════════════════════
-// CLEAR STALE SERVICE WORKER & CACHE
-// ══════════════════════════════════════
-(function clearStaleSW() {
-  if (!('serviceWorker' in navigator)) return;
-  // Unregister semua SW lama yang menggunakan blob: URL
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(reg => {
-      if (reg.active && reg.active.scriptURL.startsWith('blob:')) {
-        reg.unregister().then(() => console.log('[PWA] Unregistered stale blob SW'));
-      }
-    });
-  });
-  // Clear semua cache lama
-  if ('caches' in window) {
-    caches.keys().then(keys => {
-      keys.forEach(key => {
-        if (!key.startsWith('cbt-pro')) {
-          caches.delete(key).then(() => console.log('[PWA] Deleted stale cache:', key));
-        }
-      });
-    });
-  }
-})();
-
 // PWA — Manifest injection + SW + Install
 // ══════════════════════════════════════
 (function initPWA() {
