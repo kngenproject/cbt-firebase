@@ -3018,7 +3018,8 @@ const FSDb = {
     } catch(e) { console.warn('FS saveResult:', e); }
   },
   async getResults(examCode) {
-    if (!auth.currentUser) return [];  // ← tambahkan baris ini
+    if (!auth.currentUser) return [];  // ← guard
+    await auth.currentUser.getIdToken(); // ← pastikan token fresh
     try {
       let q = fdb.collection('results');
       if (examCode) q = q.where('examCode','==',examCode);
@@ -3277,40 +3278,14 @@ function backToRole() {
 }
 
 async function loginGuru() {
-  const email = document.getElementById('guruUser').value.trim();
-  const pass  = document.getElementById('guruPass').value;
-  if (!email || !pass) { toast('Email dan password harus diisi!', 'error'); return; }
-  const btn = document.getElementById('btnLoginGuru');
-  btn.disabled = true; btn.textContent = 'Memproses...';
-  try {
-    await auth.signInWithEmailAndPassword(email, pass);
-    const user = auth.currentUser;
-    APP.role = 'guru';
-    APP.guruEmail = user.email;
-    APP.guruName  = user.displayName || user.email.split('@')[0];
-    // Bersihkan data demo lama jika ada
-    const storedExams = DB.get('exams', []);
-    const cleanExams = storedExams.filter(e => e.code !== 'DEMO01');
-    if (cleanExams.length !== storedExams.length) DB.set('exams', cleanExams);
-    showScreen('guru-screen');
-    document.getElementById('bottomNav').classList.add('show');
-    await refreshDashboard();
-    toast(`Selamat datang, ${APP.guruName}! 👋`, 'success');
-  } catch(e) {
-    const msg = {
-      'auth/user-not-found':    'Email tidak terdaftar!',
-      'auth/wrong-password':    'Password salah!',
-      'auth/invalid-email':     'Format email tidak valid!',
-      'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
-      'auth/invalid-credential':'Email atau password salah!',
-      'auth/requests-from-referer-are-blocked': 'Domain ini belum diizinkan Firebase. Tambahkan domain di Firebase Console → Authentication → Settings → Authorized domains.',
-      'auth/unauthorized-domain': 'Domain tidak diizinkan. Tambahkan di Firebase Console → Authentication → Authorized domains.',
-      'auth/network-request-failed': 'Gagal terhubung ke server. Periksa koneksi internet.',
-    }[e.code] || 'Login gagal: ' + e.message;
-    toast(msg, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Masuk ke Dashboard →';
-  }
+  ...
+  const cred = await auth.signInWithEmailAndPassword(email, pass);
+
+  // Tunggu token auth benar-benar siap sebelum akses Firestore
+  await cred.user.getIdToken(true);  // ← tambahkan baris ini
+
+  ...
+  await refreshDashboard();
 }
 
 async function registerGuru() {
