@@ -16,10 +16,26 @@ service cloud.firestore {
     match /results/{resultId} {
       allow create: if true;
       allow read, delete: if request.auth != null;
-      allow update: if false; // hasil tidak boleh diubah
+      allow update: if false;
     }
 
-    // ── CONFIG (uploaded soal) ──
+    // ── PARTICIPANTS ──
+    // Siswa bisa tulis (join/update status), guru bisa baca
+    match /participants/{docId} {
+      allow read:   if request.auth != null;
+      allow write:  if true;
+    }
+
+    // ── PERMISSION REQUESTS ──
+    // Siswa bisa buat & baca request miliknya, guru bisa baca & update semua
+    match /permissionRequests/{docId} {
+      allow create: if true;
+      allow read:   if true;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // ── CONFIG ──
     // Hanya guru yang bisa baca & tulis
     match /config/{docId} {
       allow read, write: if request.auth != null;
