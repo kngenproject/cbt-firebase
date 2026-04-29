@@ -3281,7 +3281,7 @@ function backToRole() {
 }
 
 async function loginGuru() {
-  const email = document.getElementById('guruEmail').value.trim();
+  const email = document.getElementById('guruUser').value.trim();
   const pass  = document.getElementById('guruPass').value;
   if (!email || !pass) { toast('Email dan password harus diisi!', 'error'); return; }
   const btn = document.getElementById('btnLoginGuru');
