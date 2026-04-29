@@ -7,10 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" id="pwa-manifest">
+<link rel="manifest" href="./manifest.json" id="pwa-manifest">
 <meta name="application-name" content="CBT Pro">
 <meta name="apple-mobile-web-app-title" content="CBT Pro">
-<link rel="apple-touch-icon" id="ati-icon" sizes="192x192" href="">
+<link rel="apple-touch-icon" id="ati-icon" sizes="192x192" href="./apple-touch-icon.png">
 <title>CBT Pro — Sistem Ujian Online</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
@@ -2977,6 +2977,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const fdb  = firebase.firestore();
 
+// ── PWA: paksa persistence ke LOCAL agar sesi tetap ada saat app dibuka ulang ──
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e => console.warn('[Auth] setPersistence:', e));
+
 // ══════════════════════════════════════
 // DATA STORE — localStorage (session cache) + Firestore (online)
 // ══════════════════════════════════════
@@ -5561,52 +5564,12 @@ APP.results = DB.get('results', []);
 
   const icon192 = _makeIcon(192);
 
-  // ── 2. Update apple-touch-icon (iOS "Add to Home Screen") ──
+  // ── 2. Update apple-touch-icon dengan canvas icon (iOS) ──
   const atiLink = document.getElementById('ati-icon') || document.querySelector('link[rel="apple-touch-icon"]');
   if (atiLink && icon192) atiLink.href = icon192;
 
-  // ── 3. Buat & inject Web App Manifest ──
-  //    Manifest harus di-set SEBELUM browser selesai parsing agar Chrome
-  //    bisa evaluate installability. Kita set href manifest di sini (di dalam
-  //    script body, setelah DOMContentLoaded sudah lewat tapi manifest link
-  //    masih bisa di-update dan Chrome akan re-fetch).
-  const PAGE_URL = window.location.href.split('?')[0].split('#')[0];
-  const manifest = {
-    name: 'CBT Pro — Sistem Ujian Online',
-    short_name: 'CBT Pro',
-    description: 'Platform CBT untuk guru & siswa sekolah',
-    start_url: PAGE_URL,
-    scope: PAGE_URL.substring(0, PAGE_URL.lastIndexOf('/') + 1) || '/',
-    display: 'standalone',
-    display_override: ['standalone', 'minimal-ui', 'browser'],
-    orientation: 'any',
-    background_color: '#080c10',
-    theme_color: '#080c10',
-    lang: 'id',
-    icons: icon192 ? [
-      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable' }
-    ] : [],
-    categories: ['education', 'productivity'],
-    screenshots: []
-  };
+  // ── 3. Register Service Worker ──
 
-  try {
-    const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-    const mURL  = URL.createObjectURL(mBlob);
-    // Set di link yang sudah ada
-    const mLink = document.getElementById('pwa-manifest');
-    if (mLink) {
-      mLink.href = mURL;
-      // Paksa browser re-evaluate dengan menghapus dan menambah kembali
-      const parent = mLink.parentNode;
-      const next   = mLink.nextSibling;
-      parent.removeChild(mLink);
-      parent.insertBefore(mLink, next);
-    }
-  } catch(e) { console.warn('[PWA] Manifest inject failed:', e); }
-
-  // ── 4. Register Service Worker ──
   if (!('serviceWorker' in navigator)) return;
 
   // Cache version = timestamp file ini disimpan — berubah setiap deploy baru
