@@ -4267,6 +4267,7 @@ async function renderHasil() {
 }
 
 function _escHtml(str) {
+  if (str === null || str === undefined) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
@@ -4653,7 +4654,7 @@ async function joinExam() {
 
   APP.examCfg = { name, nis, code, exam };
   APP.role = 'siswa';
-  APP.questions = exam.acak ? shuffle([...exam.questions]) : [...exam.questions];
+  APP.questions = (exam.questions && exam.questions.length) ? (exam.acak ? shuffle([...exam.questions]) : [...exam.questions]) : [];
   APP.answers = new Array(APP.questions.length).fill(null);
   APP.flags   = new Array(APP.questions.length).fill(false);
   APP.current = 0;
@@ -4711,8 +4712,13 @@ function buildNumGrid() {
 }
 
 function renderQ() {
+  if (!APP.questions || !APP.questions.length) {
+    document.getElementById('qText').textContent = 'Tidak ada soal.';
+    return;
+  }
   const i = APP.current;
   const q = APP.questions[i];
+  if (!q) return;
   const total = APP.questions.length;
   const answered = APP.answers.filter(a=>a!==null).length;
 
@@ -4723,7 +4729,6 @@ function renderQ() {
   document.getElementById('progFill').style.width = `${((i+1)/total)*100}%`;
   document.getElementById('qText').textContent = `${i+1}. ${q.q}`;
 
-  // Update flag button style
   const flagBtn = document.getElementById('flagBtn');
   if (flagBtn) {
     if (APP.flags[i]) {
@@ -4735,7 +4740,6 @@ function renderQ() {
     }
   }
 
-  // Real-time score calculation
   updateLiveScore();
 
   const opts = document.getElementById('optsList');
@@ -5682,7 +5686,7 @@ APP.results = DB.get('results', []);
 
   // Cache version = timestamp file ini disimpan — berubah setiap deploy baru
   // Memastikan SW baru SELALU hapus cache lama agar versi selalu up-to-date
-  const SW_PAGE    = PAGE_URL;
+  const SW_PAGE    = window.location.href;
   const CACHE_TS   = '1773791516';
   // swCode dihapus — SW dijalankan via file sw.js eksternal
 
