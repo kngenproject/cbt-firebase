@@ -760,7 +760,8 @@ td strong { color:var(--text); font-weight:600; }
   flex: 1;
   min-height: 0; /* allow flex child to shrink below content size */
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1fr 300px;
+      width: 100%;
   overflow: hidden;
 }
 
@@ -1383,7 +1384,7 @@ body.screen-login .screen:not(#login-screen) { display: none !important; }
 ════════════════════════════════ */
 @media (max-width:900px) and (min-width:601px) {
   /* exam-body: tetap 2-kolom, sidebar dipersempit */
-  .exam-body { grid-template-columns: 1fr 200px; }
+  .exam-body { grid-template-columns: 1fr 300px; }
   .q-panel   { padding: 1.5rem 1.5rem 1rem; }
   .q-sidebar { padding: 1rem; gap: .75rem; }
   .num-grid  { grid-template-columns: repeat(4,1fr); }
@@ -1454,7 +1455,7 @@ body.screen-login .screen:not(#login-screen) { display: none !important; }
 
   /* ── exam-body: single column ── */
   .exam-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 300px;
     grid-template-rows: 1fr auto;
     /* Tinggi dihandle oleh flex-chain dari #exam-screen.active → tidak perlu calc */
   }
@@ -2370,6 +2371,7 @@ window.jsQR = function() { return null; };
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="screen-login">
 
@@ -2734,6 +2736,7 @@ window.jsQR = function() { return null; };
         </div>
         <div class="tabs">
           <div class="tab active" onclick="switchTab(this,'upload-csv')">📄 Upload CSV</div>
+          <div class="tab" onclick="switchTab(this,'upload-excel')">📊 Upload Excel</div>
           <div class="tab" onclick="switchTab(this,'upload-json')">{ } Upload JSON</div>
           <div class="tab" onclick="switchTab(this,'upload-manual')">✏️ Input Manual</div>
           <div class="tab" onclick="switchTab(this,'upload-template')">📥 Template</div>
@@ -2748,6 +2751,17 @@ window.jsQR = function() { return null; };
           </div>
           <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleCSV(event)">
           <div id="csvPreview" style="margin-top:1rem"></div>
+        </div>
+
+        <!-- EXCEL -->
+        <div id="upload-excel" class="tab-pane">
+          <div class="upload-zone" onclick="document.getElementById('excelFile').click()">
+            <span class="upload-icon">📊</span>
+            <p><strong>Klik untuk upload</strong> file Excel (.xlsx / .xls)</p>
+            <small>Format kolom: Pertanyaan | Opsi A | Opsi B | Opsi C | Opsi D | Jawaban (A/B/C/D)</small>
+          </div>
+          <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" onchange="handleExcel(event)">
+          <div id="excelPreview" style="margin-top:1rem"></div>
         </div>
 
         <!-- JSON -->
@@ -3043,7 +3057,22 @@ const FSDb = {
   },
   listenParticipants(examCode, callback) {
     return fdb.collection('participants').where('examCode','==',examCode)
-      .onSnapshot(snap => callback(snap.docs.map(d => d.data())), e => console.warn(e));
+      .onSnapshot(snap => {
+        const docs = snap.docs.map(d => d.data());
+        docs.forEach(p => {
+          if (p.violations && p.violations > 0) {
+            const k = (p.examCode || '') + '_' + p.nis;
+            window._lastViolations = window._lastViolations || {};
+            if (p.violations > (window._lastViolations[k] || 0)) {
+              if (APP.role === 'guru') {
+                toast(`⚠️ ${p.name} (NIS: ${p.nis}) melanggar! (${p.violations}x)`, 'error');
+              }
+              window._lastViolations[k] = p.violations;
+            }
+          }
+        });
+        callback(docs);
+      }, e => console.warn(e));
   },
   listenParticipantsMulti(examCodes, callback) {
     if (!examCodes.length) { callback([]); return () => {}; }
@@ -3225,6 +3254,47 @@ let APP = {
 // ══════════════════════════════════════
 // PERBAIKAN: COOLDOWN VIOLATION & FLAG SUBMIT
 // ══════════════════════════════════════
+
+    // --- FITUR LANJUTAN: AUTO-SAVE & FULLSCREEN ---
+    function _saveProgress() {
+      if (!APP.examCfg) return;
+      const key = `cbt_prog_${APP.examCfg.code}_${APP.examCfg.nis}`;
+      const data = {
+        answers: APP.answers,
+        flags: APP.flags,
+        timeLeft: APP.timeLeft,
+        current: APP.current
+      };
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    function _loadProgress() {
+      if (!APP.examCfg) return false;
+      const key = `cbt_prog_${APP.examCfg.code}_${APP.examCfg.nis}`;
+      const saved = localStorage.getItem(key);
+      if (!saved) return false;
+      try {
+        const data = JSON.parse(saved);
+        if (data.answers && data.answers.length === APP.questions.length) {
+          APP.answers = data.answers;
+          APP.flags = data.flags || APP.flags;
+          if (data.timeLeft) APP.timeLeft = data.timeLeft;
+          if (data.current !== undefined) APP.current = data.current;
+          return true;
+        }
+      } catch(e) {}
+      return false;
+    }
+
+    function _requestFullscreen() {
+      try {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) elem.requestFullscreen();
+        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+        else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+      } catch(e) {}
+    }
+
 let lastViolationTime = 0;
 let countdownInterval = null;
 let violationCountdown = null; // terpisah dari timer ujian
@@ -4505,7 +4575,32 @@ function exportPDF(examCode) {
   ">✕</button>
 </div>
 
-</body></html>`;
+
+<!-- INDIKATOR OFFLINE / ONLINE -->
+<div id="offlineBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99999; background:#dc2626; color:#fff; text-align:center; padding:0.5rem; font-size:0.8rem; font-weight:700;">
+  ⚠️ Koneksi internet terputus! Periksa jaringan Anda.
+</div>
+
+
+<script>
+window.addEventListener("online", () => {
+  const b = document.getElementById("offlineBanner");
+  if(b) b.style.display = "none";
+});
+window.addEventListener("offline", () => {
+  let b = document.getElementById("offlineBanner");
+  if(!b) {
+    b = document.createElement("div");
+    b.id = "offlineBanner";
+    b.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;text-align:center;padding:0.5rem;font-size:0.8rem;font-weight:700;";
+    b.textContent = "⚠️ Koneksi internet terputus! Periksa jaringan Anda.";
+    document.body.prepend(b);
+  }
+  b.style.display = "block";
+});
+</script>
+</body>
+</html>`;
 
   const w = window.open('','_blank');
   if (!w) { toast('Popup diblokir browser. Izinkan popup untuk export PDF.', 'error'); return; }
@@ -4563,6 +4658,8 @@ async function joinExam() {
   APP.flags   = new Array(APP.questions.length).fill(false);
   APP.current = 0;
   APP.timeLeft = exam.dur * 60;
+  if (_loadProgress()) { toast('Memulihkan progress ujian sebelumnya...', 'info'); }
+  _requestFullscreen();
   APP.violations = 0;
   APP.maxViolations = exam.sec > 0 ? exam.sec : 999;
   APP.secActive = exam.sec > 0;
@@ -4699,6 +4796,7 @@ function updateGrid() {
 
 function selectAns(oi) {
   APP.answers[APP.current] = oi;
+  _saveProgress();
   renderQ();
 }
 
@@ -4743,6 +4841,9 @@ function startTimer() {
 }
 
 async function submitExam() {
+  if (APP.examCfg) {
+    localStorage.removeItem(`cbt_prog_${APP.examCfg.code}_${APP.examCfg.nis}`);
+  }
   if (isSubmitting) return;
   isSubmitting = true;
 
@@ -5080,6 +5181,13 @@ function triggerViolation(msg) {
 
   APP.violations++;
   updateWarnCounter();
+  if (APP.examCfg) {
+    FSDb.saveParticipant({
+      name: APP.examCfg.name, nis: APP.examCfg.nis,
+      examCode: APP.examCfg.code, examTitle: APP.examCfg.exam.title,
+      violations: APP.violations, status: 'mengerjakan'
+    }).catch(()=>{});
+  }
 
   const overlay = document.getElementById('secOverlay');
   document.getElementById('secMsg').textContent = msg + ' Pelanggaran ke-' + APP.violations + ' dari ' + APP.maxViolations + '.';

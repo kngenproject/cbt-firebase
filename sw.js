@@ -84,6 +84,23 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  
+  // CDN External Libraries: Cache-first with network fallback
+  if (url.hostname.includes("jsdelivr.net") || url.hostname.includes("cloudflare.com") || url.hostname.includes("gstatic.com")) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache =>
+        cache.match(event.request).then(cached => {
+          if (cached) return cached;
+          return fetch(event.request).then(res => {
+            if (res && res.status === 200) cache.put(event.request, res.clone());
+            return res;
+          }).catch(() => cached);
+        })
+      )
+    );
+    return;
+  }
+
   // GET requests: network-first, fallback cache
   if (event.request.method === 'GET') {
     event.respondWith(
