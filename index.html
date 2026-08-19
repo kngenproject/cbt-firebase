@@ -4267,6 +4267,8 @@ async function renderHasil() {
 }
 
 function _escHtml(str) {
+  if (str === null || str === undefined) return "";
+
   if (str === null || str === undefined) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -4712,6 +4714,14 @@ function buildNumGrid() {
 }
 
 function renderQ() {
+  if (!APP.questions || !APP.questions.length) {
+    document.getElementById("qText").textContent = "Tidak ada soal.";
+    return;
+  }
+  const i = APP.current;
+  const q = APP.questions[i];
+  if (!q) return;
+
   if (!APP.questions || !APP.questions.length) {
     document.getElementById('qText').textContent = 'Tidak ada soal.';
     return;
